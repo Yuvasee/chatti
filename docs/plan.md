@@ -13,12 +13,12 @@
 
 ### Auth Service
 
-- [ ] Initialize NestJS project in packages/auth-service
-- [ ] Set up MongoDB connection
-- [ ] Implement guest login endpoint
-- [ ] Add random name/avatar generation
-- [ ] Implement JWT token generation
-- [ ] Add basic error handling and validation
+- [X] Initialize NestJS project in packages/auth-service
+- [X] Set up MongoDB connection
+- [X] Implement guest login endpoint
+- [X] Add random name/avatar generation
+- [X] Implement JWT token generation
+- [X] Add basic error handling and validation
 
 ### Chat Service
 
