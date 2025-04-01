@@ -14,6 +14,28 @@ packages/
 libs/                  # any shared libraries or code
 ```
 
+### Message Flow Architecture
+
+1. **Real-time Message Flow**:
+
+   - Client sends message through WebSocket
+   - Chat Service receives message via Socket.IO
+   - Message is immediately broadcast to all connected clients in the chat room
+   - Message is asynchronously persisted to MongoDB (non-blocking)
+   - Translation job is queued in BullMQ if needed
+
+2. **Translation Flow**:
+
+   - Translation Service consumes jobs from BullMQ
+   - Translates message using OpenAI API
+   - Stores translation in MongoDB
+   - Notifies clients through WebSocket about new translation
+
+3. **Reconnection Handling**:
+   - When client reconnects, fetches recent message history from MongoDB
+   - Includes both original messages and their translations
+   - Continues receiving real-time updates
+
 ### Front End (web): React + TypeScript + Vite
 
 - **UI Library**: Material UI for components
