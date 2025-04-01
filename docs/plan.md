@@ -2,12 +2,12 @@
 
 ## 1. Project Setup
 
-- [ ] Initialize monorepo structure with npm workspaces
-- [ ] Create root package.json with workspace configuration
-- [ ] Set up docker-compose.yml with all required services
-- [ ] Create .env template with required environment variables
-- [ ] Set up shared TypeScript configuration
-- [ ] Configure ESLint and Prettier for the monorepo
+- [X] Initialize monorepo structure with npm workspaces
+- [X] Create root package.json with workspace configuration
+- [X] Set up docker-compose.yml with all required services
+- [X] Create .env template with required environment variables
+- [X] Set up shared TypeScript configuration
+- [X] Configure ESLint and Prettier for the monorepo
 
 ## 2. Backend Services Setup
 

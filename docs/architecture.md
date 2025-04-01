@@ -11,7 +11,6 @@ packages/
   auth-service/        # NestJS-based Auth microservice
   chat-service/        # NestJS-based Chat microservice
   translation-service/ # NestJS-based Translation microservice
-libs/                  # any shared libraries or code
 ```
 
 ### Message Flow Architecture
