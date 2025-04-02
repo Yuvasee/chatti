@@ -4,6 +4,11 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
-  }
+    "experimentalDecorators": true,
+    "declaration": true,
+    "composite": true,
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*"]
 } 
