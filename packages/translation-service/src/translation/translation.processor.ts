@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { TranslationService } from './translation.service';
-import { TranslationJob } from '../queue/queue.service';
+import { TranslationJobDto } from '@chatti/shared-types';
 
 @Processor('translation')
 export class TranslationProcessor {
@@ -15,16 +15,11 @@ export class TranslationProcessor {
   ) {}
 
   @Process('translate')
-  async processTranslation(job: Job<TranslationJob>) {
+  async processTranslation(job: Job<TranslationJobDto>) {
     this.logger.log(`Processing translation job ${job.id} for messageId: ${job.data.messageId}`);
 
     try {
-      await this.translationService.processTranslation(
-        job.data.messageId,
-        job.data.originalText,
-        job.data.sourceLanguage,
-        job.data.targetLanguage,
-      );
+      await this.translationService.processTranslation(job.data);
 
       this.logger.log(
         `Successfully processed translation job ${job.id} for messageId: ${job.data.messageId}`,

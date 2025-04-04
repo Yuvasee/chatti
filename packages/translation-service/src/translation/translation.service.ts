@@ -4,6 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Translation, TranslationDocument } from '../schemas/translation.schema';
 import { QueueService } from '../queue/queue.service';
+import { TranslationJobDto, TranslationResultDto } from '@chatti/shared-types';
 import OpenAI from 'openai';
 
 @Injectable()
@@ -35,12 +36,14 @@ export class TranslationService {
     sourceLanguage: string,
     targetLanguage: string,
   ): Promise<void> {
-    await this.queueService.addTranslationJob({
+    const translationJob: TranslationJobDto = {
       messageId,
       originalText: text,
       sourceLanguage,
       targetLanguage,
-    });
+    };
+    
+    await this.queueService.addTranslationJob(translationJob);
 
     this.logger.log(`Translation queued for message ${messageId} to ${targetLanguage}`);
   }
@@ -81,12 +84,9 @@ export class TranslationService {
   /**
    * Process a translation job and store the result
    */
-  async processTranslation(
-    messageId: string,
-    originalText: string,
-    sourceLanguage: string,
-    targetLanguage: string,
-  ): Promise<void> {
+  async processTranslation(job: TranslationJobDto): Promise<void> {
+    const { messageId, originalText, sourceLanguage, targetLanguage } = job;
+    
     // Skip translation if languages are the same
     if (sourceLanguage === targetLanguage) {
       const newTranslation = new this.translationModel({

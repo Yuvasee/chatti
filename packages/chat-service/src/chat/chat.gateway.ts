@@ -12,20 +12,7 @@ import { ChatService } from './chat.service';
 import { MessageService } from './message.service';
 import { Logger } from '@nestjs/common';
 import { TranslationProducerService } from '../queue/translation-producer.service';
-
-interface JoinChatPayload {
-  chatId: string;
-  userId: string;
-  username: string;
-}
-
-interface MessagePayload {
-  chatId: string;
-  userId: string;
-  username: string;
-  content: string;
-  language: string;
-}
+import { JoinChatDto, MessageDto } from '@chatti/shared-types';
 
 @WebSocketGateway({
   cors: {
@@ -53,7 +40,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('joinChat')
-  async handleJoinChat(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinChatPayload) {
+  async handleJoinChat(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinChatDto) {
     const { chatId, userId, username } = payload;
 
     // Join the Socket.IO room
@@ -108,7 +95,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('sendMessage')
-  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: MessagePayload) {
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: MessageDto) {
     const { chatId, userId, username, content, language } = payload;
 
     // Validate that user is in this chat
@@ -199,18 +186,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error: unknown) {
       const err = error as Error;
       this.logger.error(`Error getting message history: ${err.message}`, err.stack);
+      client.emit('error', { message: 'Failed to get message history' });
       return { status: 'error', message: 'Failed to get message history' };
     }
   }
 
-  // This method will be called when a translation is completed
   notifyTranslation(
     messageId: string,
     chatId: string,
     language: string,
     translatedContent: string,
   ) {
-    this.server.to(chatId).emit('translationReceived', {
+    this.server.to(chatId).emit('messageTranslated', {
       messageId,
       language,
       translatedContent,

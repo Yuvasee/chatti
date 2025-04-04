@@ -2,13 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bull';
-
-export interface TranslationJob {
-  messageId: string;
-  originalText: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-}
+import { TranslationJobDto } from '@chatti/shared-types';
 
 @Injectable()
 export class QueueService {
@@ -25,7 +19,7 @@ export class QueueService {
   /**
    * Add a translation job to the queue
    */
-  async addTranslationJob(job: TranslationJob) {
+  async addTranslationJob(job: TranslationJobDto) {
     return this.translationQueue.add('translate', job, {
       attempts: 3,
       backoff: {
