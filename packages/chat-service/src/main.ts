@@ -1,12 +1,20 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { AppLogger, GlobalExceptionFilter } from '@chatti/shared-types';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+  
+  // Get the logger instance
+  const logger = app.get(AppLogger);
+  app.useLogger(logger);
+  
+  // Add global exception filter
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   
   // Enable validation
   app.useGlobalPipes(

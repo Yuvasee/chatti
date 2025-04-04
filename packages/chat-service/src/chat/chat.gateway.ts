@@ -10,9 +10,17 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { MessageService } from './message.service';
-import { Logger } from '@nestjs/common';
+import { 
+  JoinChatDto, 
+  MessageDto, 
+  AppLogger, 
+  ErrorCode, 
+  AppError, 
+  handleError,
+  getErrorMessage, 
+  NotFoundError 
+} from '@chatti/shared-types';
 import { TranslationProducerService } from '../queue/translation-producer.service';
-import { JoinChatDto, MessageDto } from '@chatti/shared-types';
 
 @WebSocketGateway({
   cors: {
@@ -20,8 +28,6 @@ import { JoinChatDto, MessageDto } from '@chatti/shared-types';
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  private readonly logger = new Logger(ChatGateway.name);
-
   @WebSocketServer()
   server!: Server;
 
@@ -29,82 +35,141 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private chatService: ChatService,
     private messageService: MessageService,
     private translationProducer: TranslationProducerService,
+    private readonly logger: AppLogger,
   ) {}
 
   async handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    try {
+      this.logger.log(`Client connected: ${client.id}`);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleConnection: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+    }
   }
 
   async handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    try {
+      this.logger.log(`Client disconnected: ${client.id}`);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleDisconnect: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+    }
   }
 
   @SubscribeMessage('joinChat')
   async handleJoinChat(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinChatDto) {
-    const { chatId, userId, username } = payload;
+    try {
+      const { chatId, userId, username } = payload;
+      this.logger.log(`User ${username} (${userId}) attempting to join chat ${chatId}`);
 
-    // Join the Socket.IO room
-    client.join(chatId);
+      // Join the Socket.IO room
+      client.join(chatId);
 
-    // Store user data in socket
-    client.data.userId = userId;
-    client.data.username = username;
-    client.data.chatId = chatId;
-    client.data.language = 'en'; // Default language
+      // Store user data in socket
+      client.data.userId = userId;
+      client.data.username = username;
+      client.data.chatId = chatId;
+      client.data.language = 'en'; // Default language
 
-    // Add user to chat in database
-    const chat = await this.chatService.addParticipant(chatId, userId);
+      // Add user to chat in database
+      const chat = await this.chatService.addParticipant(chatId, userId);
 
-    if (!chat) {
-      client.emit('error', { message: 'Chat not found' });
-      return;
+      if (!chat) {
+        this.logger.warn(`Chat not found: ${chatId}`);
+        client.emit('error', { message: 'Chat not found', code: ErrorCode.CHAT_NOT_FOUND });
+        throw new NotFoundError(`Chat with ID ${chatId} not found`, ErrorCode.CHAT_NOT_FOUND);
+      }
+
+      // Send recent messages to the client
+      const recentMessages = await this.messageService.getRecentMessages(chatId);
+      client.emit('recentMessages', recentMessages);
+
+      // Notify room that user has joined
+      this.server.to(chatId).emit('userJoined', {
+        chatId,
+        userId,
+        username,
+        timestamp: new Date(),
+      });
+
+      this.logger.log(`User ${username} (${userId}) successfully joined chat ${chatId}`);
+      return { status: 'success', chatId };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleJoinChat: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      
+      // Only emit error if it's not already a NotFoundError (which we've already handled)
+      if (!(error instanceof NotFoundError)) {
+        client.emit('error', { 
+          message: 'Failed to join chat', 
+          code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR 
+        });
+      }
+      
+      return { 
+        status: 'error', 
+        message: errorMessage,
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR
+      };
     }
-
-    // Send recent messages to the client
-    const recentMessages = await this.messageService.getRecentMessages(chatId);
-    client.emit('recentMessages', recentMessages);
-
-    // Notify room that user has joined
-    this.server.to(chatId).emit('userJoined', {
-      chatId,
-      userId,
-      username,
-      timestamp: new Date(),
-    });
-
-    return { status: 'success', chatId };
   }
 
   @SubscribeMessage('leaveChat')
   handleLeaveChat(@ConnectedSocket() client: Socket) {
-    if (client.data.chatId) {
-      client.leave(client.data.chatId);
+    try {
+      if (!client.data.chatId) {
+        this.logger.warn(`User attempted to leave chat but is not in any chat`);
+        return { status: 'error', message: 'Not in a chat', code: ErrorCode.NOT_CHAT_MEMBER };
+      }
+      
+      const { chatId, userId, username } = client.data;
+      this.logger.log(`User ${username} (${userId}) leaving chat ${chatId}`);
+      
+      client.leave(chatId);
 
       // Notify room that user has left
-      this.server.to(client.data.chatId).emit('userLeft', {
-        chatId: client.data.chatId,
-        userId: client.data.userId,
-        username: client.data.username,
+      this.server.to(chatId).emit('userLeft', {
+        chatId,
+        userId,
+        username,
         timestamp: new Date(),
       });
 
+      this.logger.log(`User ${username} (${userId}) successfully left chat ${chatId}`);
       return { status: 'success' };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleLeaveChat: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      
+      client.emit('error', { 
+        message: 'Failed to leave chat', 
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR 
+      });
+      
+      return { 
+        status: 'error', 
+        message: errorMessage,
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR
+      };
     }
-
-    return { status: 'error', message: 'Not in a chat' };
   }
 
   @SubscribeMessage('sendMessage')
   async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: MessageDto) {
-    const { chatId, userId, username, content, language } = payload;
-
-    // Validate that user is in this chat
-    if (client.data.chatId !== chatId) {
-      client.emit('error', { message: 'Not in this chat' });
-      return { status: 'error', message: 'Not in this chat' };
-    }
-
     try {
+      const { chatId, userId, username, content, language } = payload;
+      this.logger.log(`Message received from ${username} (${userId}) in chat ${chatId}`);
+
+      // Validate that user is in this chat
+      if (client.data.chatId !== chatId) {
+        this.logger.warn(`User ${username} (${userId}) attempted to send message to chat ${chatId} but is not a member`);
+        client.emit('error', { 
+          message: 'Not in this chat', 
+          code: ErrorCode.NOT_CHAT_MEMBER 
+        });
+        throw new AppError('User is not a member of this chat', ErrorCode.NOT_CHAT_MEMBER);
+      }
+
       // Broadcast message to all clients in the room immediately
       const messageData = {
         id: Date.now().toString(), // Temporary ID until saved
@@ -148,12 +213,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       }
 
+      this.logger.log(`Message from ${username} (${userId}) in chat ${chatId} processed successfully`);
       return { status: 'success', messageId: (savedMessage as any)._id };
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Error sending message: ${err.message}`, err.stack);
-      client.emit('error', { message: 'Failed to send message' });
-      return { status: 'error', message: 'Failed to send message' };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleMessage: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      
+      // Only emit if not already handled
+      if (!(error instanceof AppError && error.code === ErrorCode.NOT_CHAT_MEMBER)) {
+        client.emit('error', { 
+          message: 'Failed to send message', 
+          code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR 
+        });
+      }
+      
+      return { 
+        status: 'error', 
+        message: errorMessage,
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR
+      };
     }
   }
 
@@ -162,9 +240,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { language: string },
   ) {
-    const { language } = payload;
-    client.data.language = language;
-    return { status: 'success', language };
+    try {
+      const { language } = payload;
+      const { userId, username } = client.data;
+      
+      this.logger.log(`User ${username || userId} setting language to ${language}`);
+      client.data.language = language;
+      
+      return { status: 'success', language };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleSetLanguage: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      
+      client.emit('error', { 
+        message: 'Failed to set language', 
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR 
+      });
+      
+      return { 
+        status: 'error', 
+        message: errorMessage,
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR
+      };
+    }
   }
 
   @SubscribeMessage('getMessageHistory')
@@ -172,22 +270,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { chatId: string; limit?: number },
   ) {
-    const { chatId, limit } = payload;
-
-    // Validate that user is in this chat
-    if (client.data.chatId !== chatId) {
-      client.emit('error', { message: 'Not in this chat' });
-      return { status: 'error', message: 'Not in this chat' };
-    }
-
     try {
+      const { chatId, limit } = payload;
+      const { userId, username } = client.data;
+      
+      this.logger.log(`User ${username || userId} requesting message history for chat ${chatId}`);
+
+      // Validate that user is in this chat
+      if (client.data.chatId !== chatId) {
+        this.logger.warn(`User ${username || userId} attempted to get history for chat ${chatId} but is not a member`);
+        client.emit('error', { 
+          message: 'Not in this chat', 
+          code: ErrorCode.NOT_CHAT_MEMBER 
+        });
+        throw new AppError('User is not a member of this chat', ErrorCode.NOT_CHAT_MEMBER);
+      }
+
       const messages = await this.messageService.getRecentMessages(chatId, limit);
+      this.logger.log(`Successfully retrieved ${messages.length} messages for chat ${chatId}`);
+      
       return { status: 'success', messages };
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Error getting message history: ${err.message}`, err.stack);
-      client.emit('error', { message: 'Failed to get message history' });
-      return { status: 'error', message: 'Failed to get message history' };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleGetMessageHistory: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      
+      if (!(error instanceof AppError && error.code === ErrorCode.NOT_CHAT_MEMBER)) {
+        client.emit('error', { 
+          message: 'Failed to get message history', 
+          code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR 
+        });
+      }
+      
+      return { 
+        status: 'error', 
+        message: errorMessage,
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR
+      };
     }
   }
 
@@ -197,10 +315,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     language: string,
     translatedContent: string,
   ) {
-    this.server.to(chatId).emit('messageTranslated', {
-      messageId,
-      language,
-      translatedContent,
-    });
+    try {
+      this.logger.log(`Notifying chat ${chatId} about translation for message ${messageId} to ${language}`);
+      
+      this.server.to(chatId).emit('messageTranslated', {
+        messageId,
+        language,
+        translatedContent,
+      });
+      
+      this.logger.debug(`Translation notification sent for message ${messageId}`);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in notifyTranslation: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+    }
   }
 }

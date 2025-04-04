@@ -1,38 +1,51 @@
 import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { TranslationService } from './translation.service';
 import { 
   TranslationRequestDto, 
   QueueNames, 
-  ProcessorNames 
+  ProcessorNames, 
+  AppLogger,
+  ErrorCode,
+  AppError,
+  getErrorMessage
 } from '@chatti/shared-types';
 
 @Processor(QueueNames.TRANSLATION)
 export class TranslationProcessor {
-  private readonly logger = new Logger(TranslationProcessor.name);
-
   constructor(
     private readonly translationService: TranslationService,
     private readonly configService: ConfigService,
+    private readonly logger: AppLogger
   ) {}
 
   @Process(ProcessorNames.TRANSLATE)
   async processTranslation(job: Job<TranslationRequestDto>) {
-    this.logger.log(`Processing translation job ${job.id} for messageId: ${job.data.messageId}`);
-
     try {
+      const { messageId, targetLanguage, sourceLanguage } = job.data;
+      this.logger.log(`Processing translation job ${job.id} for messageId: ${messageId} from ${sourceLanguage} to ${targetLanguage}`);
+
       await this.translationService.processTranslation(job.data);
 
       this.logger.log(
-        `Successfully processed translation job ${job.id} for messageId: ${job.data.messageId}`,
+        `Successfully processed translation job ${job.id} for messageId: ${messageId}`,
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-      this.logger.error(`Failed to process translation job ${job.id}: ${errorMessage}`, errorStack);
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(
+        `Failed to process translation job ${job.id}: ${errorMessage}`, 
+        error instanceof Error ? error.stack : undefined
+      );
+      
+      // Convert any error to an AppError for consistent handling
+      if (!(error instanceof AppError)) {
+        throw new AppError(
+          `Translation failed: ${errorMessage}`, 
+          ErrorCode.TRANSLATION_ERROR
+        );
+      }
+      
       throw error; // Rethrow to trigger job retry
     }
   }
