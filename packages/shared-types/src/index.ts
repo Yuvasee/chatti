@@ -4,3 +4,8 @@ export * from './translation';
 export * from './chat';
 export * from './queue';
 export * from './config';
+export * from './utils/error-handling';
+export * from './utils/logging';
+export * from './utils/logging.module';
+export * from './utils/request-logger.middleware';
+export * from './utils/error.filter';
