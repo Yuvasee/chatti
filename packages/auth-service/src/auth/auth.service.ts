@@ -7,10 +7,9 @@ import { GuestService } from './guest.service';
 import { 
   LoginResponseDto, 
   AppLogger, 
-  ErrorCode, 
   AppError, 
-  handleError,
-  getErrorMessage 
+  ErrorCode,
+  getErrorMessage
 } from '@chatti/shared-types';
 import mongoose from 'mongoose';
 

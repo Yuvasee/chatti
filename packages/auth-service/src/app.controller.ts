@@ -1,12 +1,21 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { HealthCheckResponseDto } from '@chatti/shared-types';
 
+@ApiTags('Health')
 @Controller()
 export class AppController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get()
-  getStatus(): any {
+  @ApiOperation({ summary: 'Get service health status' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Service is healthy', 
+    type: HealthCheckResponseDto 
+  })
+  getStatus(): HealthCheckResponseDto {
     return {
       service: 'auth-service',
       status: 'online',

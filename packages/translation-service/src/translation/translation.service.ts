@@ -10,7 +10,7 @@ import {
   AppLogger,
   ErrorCode,
   AppError,
-  handleError,
+  
   getErrorMessage 
 } from '@chatti/shared-types';
 import OpenAI from 'openai';

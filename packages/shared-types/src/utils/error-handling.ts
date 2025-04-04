@@ -158,22 +158,6 @@ export const toHttpException = (error: unknown): HttpException => {
 };
 
 /**
- * Safely handle an error, log it, and return appropriate error response
- */
-export const handleError = (error: unknown, logger: Logger, context?: string): never => {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  const errorStack = error instanceof Error ? error.stack : undefined;
-  
-  logger.error(`Error${context ? ` in ${context}` : ''}: ${errorMessage}`, errorStack);
-  
-  if (error instanceof AppError) {
-    throw error;
-  }
-  
-  throw new AppError(errorMessage);
-};
-
-/**
  * Extract error message safely from unknown error type
  */
 export const getErrorMessage = (error: unknown): string => {

@@ -7,8 +7,11 @@ import {
   AppLogger, 
   ErrorCode, 
   AppError, 
-  handleError,
-  getErrorMessage 
+  
+  getErrorMessage,
+  MessageDto,
+  PaginatedResponseDto,
+  PaginationMetaDto
 } from '@chatti/shared-types';
 
 @Injectable()
@@ -97,6 +100,74 @@ export class MessageService {
       const errorMessage = getErrorMessage(error);
       this.logger.error(`Error in addTranslation: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
       throw error;
+    }
+  }
+
+  /**
+   * Get paginated messages for a chat
+   */
+  async getPaginatedMessages(
+    chatId: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<MessageDto>> {
+    try {
+      this.logger.log(`Getting paginated messages for chat ${chatId}, page ${page}, limit ${limit}`);
+      
+      // Calculate skip value for pagination
+      const skip = (page - 1) * limit;
+      
+      // Get messages with pagination
+      const messages = await this.messageModel
+        .find({ chatId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+      
+      // Count total messages for this chat
+      const totalItems = await this.messageModel.countDocuments({ chatId }).exec();
+      
+      // Calculate total pages
+      const totalPages = Math.ceil(totalItems / limit);
+      
+      // Create pagination metadata
+      const meta = new PaginationMetaDto(
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        page < totalPages, // hasNextPage
+        page > 1           // hasPreviousPage
+      );
+      
+      this.logger.log(`Retrieved ${messages.length} messages for chat ${chatId}`);
+      
+      // Convert to DTOs and return
+      const messageDtos = messages.map(message => ({
+        chatId: message.chatId,
+        userId: message.userId,
+        username: message.username,
+        content: message.content,
+        language: message.translations ? Object.keys(message.translations)[0] || 'en' : 'en'
+      }));
+      
+      return new PaginatedResponseDto<MessageDto>(
+        messageDtos,
+        meta,
+        `Retrieved ${messages.length} messages for chat ${chatId}`
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to get paginated messages for chat ${chatId}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined
+      );
+      throw new AppError(
+        `Failed to get messages for chat: ${errorMessage}`,
+        ErrorCode.DATABASE_ERROR
+      );
     }
   }
 }

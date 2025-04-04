@@ -9,3 +9,4 @@ export * from './utils/logging';
 export * from './utils/logging.module';
 export * from './utils/request-logger.middleware';
 export * from './utils/error.filter';
+export * from './api';

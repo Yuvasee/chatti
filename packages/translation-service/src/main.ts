@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppLogger, GlobalExceptionFilter } from '@chatti/shared-types';
+import { AppLogger, GlobalExceptionFilter, setupSwaggerDoc } from '@chatti/shared-types';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -26,7 +26,16 @@ async function bootstrap() {
     }),
   );
 
+  // Set up Swagger documentation
   const configService = app.get(ConfigService);
+  setupSwaggerDoc(app, {
+    title: 'Translation Service API',
+    description: 'API documentation for the Chatti Translation Service',
+    version: configService.get<string>('npm_package_version') || '1.0.0',
+    tag: 'translation',
+    path: 'api/docs',
+  });
+
   const port = configService.get<number>('port') || 4002;
 
   await app.listen(port);

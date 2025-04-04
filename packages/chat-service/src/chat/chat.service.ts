@@ -6,7 +6,7 @@ import {
   AppLogger, 
   ErrorCode, 
   AppError, 
-  handleError,
+  
   getErrorMessage, 
   NotFoundError 
 } from '@chatti/shared-types';

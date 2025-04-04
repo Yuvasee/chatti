@@ -7,10 +7,14 @@ import {
   AppLogger,
   ErrorCode,
   AppError,
-  handleError,
-  getErrorMessage
+  
+  getErrorMessage,
+  ApiResponseDto,
+  ApiErrorResponseDto
 } from '@chatti/shared-types';
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 
+@ApiTags('Translation')
 @Controller('translation')
 export class TranslationController {
   constructor(
@@ -20,14 +24,30 @@ export class TranslationController {
   ) {}
 
   @Post('queue')
-  async queueTranslation(@Body() job: TranslationRequestDto) {
+  @ApiOperation({ summary: 'Queue a new translation job' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Translation job queued successfully',
+    type: () => ApiResponseDto<{ success: boolean }>
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Invalid translation data', 
+    type: ApiErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Server error',
+    type: ApiErrorResponseDto
+  })
+  async queueTranslation(@Body() job: TranslationRequestDto): Promise<ApiResponseDto<{ success: boolean }>> {
     try {
       this.logger.log(`Received request to queue translation for message: ${job.messageId}`);
       
       await this.queueService.addTranslationJob(job);
       
       this.logger.log(`Successfully queued translation for message: ${job.messageId}`);
-      return { success: true, message: 'Translation job queued successfully' };
+      return new ApiResponseDto<{ success: boolean }>({ success: true }, 'Translation job queued successfully');
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(
@@ -42,14 +62,35 @@ export class TranslationController {
   }
 
   @Get('queue/status')
-  async getQueueStatus() {
+  @ApiOperation({ summary: 'Get translation queue status' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Queue status retrieved successfully', 
+    type: () => ApiResponseDto<{
+      waiting: number;
+      active: number;
+      completed: number;
+      failed: number;
+    }>
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Server error',
+    type: ApiErrorResponseDto
+  })
+  async getQueueStatus(): Promise<ApiResponseDto<{
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+  }>> {
     try {
       this.logger.log('Received request for queue status');
       
       const status = await this.queueService.getQueueCount();
       
       this.logger.log(`Queue status: ${JSON.stringify(status)}`);
-      return status;
+      return new ApiResponseDto(status, 'Queue status retrieved successfully');
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(
