@@ -26,9 +26,9 @@ export class MessageDto {
 }
 
 /**
- * DTO for saving a message to the database
+ * DTO for creating a message in the database
  */
-export class SaveMessageDto {
+export class CreateMessageDto {
   @IsString()
   @IsNotEmpty()
   chatId!: string;

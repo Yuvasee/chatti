@@ -1,2 +1,3 @@
-export * from './translation-job.dto';
-export * from './translation-result.dto'; 
+export * from './translation-request.dto';
+export * from './translation-response.dto';
+export * from './translation.dto'; 

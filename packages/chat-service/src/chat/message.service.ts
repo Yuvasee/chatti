@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Message, MessageDocument } from '../schemas/message.schema';
-import { SaveMessageDto } from '@chatti/shared-types';
+import { CreateMessageDto } from '@chatti/shared-types';
 
 @Injectable()
 export class MessageService {
@@ -11,7 +11,7 @@ export class MessageService {
   /**
    * Save a message to the database
    */
-  async saveMessage(messageData: SaveMessageDto): Promise<Message> {
+  async saveMessage(messageData: CreateMessageDto): Promise<Message> {
     const newMessage = new this.messageModel({
       ...messageData,
       translations: {},

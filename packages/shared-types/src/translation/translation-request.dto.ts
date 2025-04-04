@@ -1,20 +1,16 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
 /**
- * DTO for chat translation job requests
+ * DTO for translation requests
  */
-export class ChatTranslationJobDto {
+export class TranslationRequestDto {
   @IsString()
   @IsNotEmpty()
   messageId!: string;
 
   @IsString()
   @IsNotEmpty()
-  chatId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  content!: string;
+  originalText!: string;
 
   @IsString()
   @IsNotEmpty()

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
-import { ChatTranslationJobDto } from '@chatti/shared-types';
+import { ChatTranslationRequestDto } from '@chatti/shared-types';
 
 @Injectable()
 export class TranslationProducerService {
@@ -16,7 +16,7 @@ export class TranslationProducerService {
     this.queueName = this.configService.get<string>('queue.translation') || 'translation';
   }
 
-  async addTranslationJob(data: ChatTranslationJobDto): Promise<void> {
+  async addTranslationJob(data: ChatTranslationRequestDto): Promise<void> {
     await this.translationQueue.add('translate', data, {
       attempts: 3,
       backoff: {

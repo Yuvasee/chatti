@@ -2,25 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { Collection, Db } from 'mongodb';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
-
-interface Translation {
-  messageId: string;
-  originalText: string;
-  translatedText: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  createdAt: Date;
-}
+import { TranslationDto } from '@chatti/shared-types';
 
 @Injectable()
 export class DatabaseService {
   private db: Db;
-  private translationsCollection: Collection<Translation>;
+  private translationsCollection: Collection<TranslationDto>;
 
   constructor(@InjectConnection() private connection: Connection) {
     // Get the native MongoDB connection from Mongoose
     this.db = this.connection.db as Db;
-    this.translationsCollection = this.db.collection<Translation>('translations');
+    this.translationsCollection = this.db.collection<TranslationDto>('translations');
     
     // Initialize indexes
     this.initializeIndexes();
@@ -38,7 +30,7 @@ export class DatabaseService {
     );
   }
 
-  async saveTranslation(translation: Omit<Translation, 'createdAt'>) {
+  async saveTranslation(translation: Omit<TranslationDto, 'createdAt'>) {
     return this.translationsCollection.updateOne(
       {
         messageId: translation.messageId,

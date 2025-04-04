@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { TranslationService } from './translation.service';
 import { QueueService } from '../queue/queue.service';
-import { TranslationJobDto, TranslationResultDto } from '@chatti/shared-types';
+import { TranslationRequestDto, TranslationResponseDto } from '@chatti/shared-types';
 
 @Controller('translation')
 export class TranslationController {
@@ -11,7 +11,7 @@ export class TranslationController {
   ) {}
 
   @Post('queue')
-  async queueTranslation(@Body() job: TranslationJobDto) {
+  async queueTranslation(@Body() job: TranslationRequestDto) {
     return this.queueService.addTranslationJob(job);
   }
 

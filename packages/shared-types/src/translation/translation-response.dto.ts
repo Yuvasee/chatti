@@ -2,9 +2,9 @@ import { IsNotEmpty, IsString, IsOptional, IsDate } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
- * DTO for translation results
+ * DTO for translation responses
  */
-export class TranslationResultDto {
+export class TranslationResponseDto {
   @IsString()
   @IsNotEmpty()
   messageId!: string;
