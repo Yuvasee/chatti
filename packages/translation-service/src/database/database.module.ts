@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
-import { DatabaseService } from './database.service';
-import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule as SharedDatabaseModule } from '@chatti/shared-types';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Translation, TranslationSchema } from '../schemas/translation.schema';
 
 @Module({
-  imports: [ConfigModule],
-  providers: [DatabaseService],
-  exports: [DatabaseService],
+  imports: [
+    SharedDatabaseModule.forRoot(),
+    MongooseModule.forFeature([
+      { name: Translation.name, schema: TranslationSchema },
+    ]),
+  ],
+  exports: [MongooseModule],
 })
 export class DatabaseModule {}

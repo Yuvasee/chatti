@@ -1,23 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../common/database.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User, UserDocument } from '../schemas/user.schema';
 import { JwtService } from './jwt.service';
 import { GuestService } from './guest.service';
-import { ObjectId } from 'mongodb';
 import { LoginResponseDto } from '@chatti/shared-types';
-
-interface UserData {
-  _id?: ObjectId;
-  name: string;
-  avatar: string;
-  createdAt: Date;
-}
+import mongoose from 'mongoose';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly dbService: DatabaseService,
-    private readonly jwtService: JwtService,
-    private readonly guestService: GuestService,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private jwtService: JwtService,
+    private guestService: GuestService,
   ) {}
 
   /**
@@ -28,26 +23,39 @@ export class AuthService {
     const userName = name || this.guestService.generateRandomName();
     const avatar = this.guestService.generateAvatar(userName);
 
-    // Create user document
-    const userData: UserData = {
+    const newUser = new this.userModel({
       name: userName,
       avatar,
-      createdAt: new Date(),
-    };
-
-    // Store in database
-    const result = await this.dbService.users.insertOne(userData);
-
-    // Generate JWT token
-    const token = this.jwtService.generateToken({
-      userId: result.insertedId.toString(),
-      name: userName,
     });
+
+    const savedUser = await newUser.save();
+    const userId = (savedUser._id as mongoose.Types.ObjectId).toString();
+    const token = this.jwtService.generateToken({ userId, name: userName });
 
     return {
       name: userName,
       avatar,
       token,
+    };
+  }
+
+  async loginAsGuest(): Promise<LoginResponseDto> {
+    const name = this.guestService.generateRandomName();
+    const avatar = this.guestService.generateAvatar(name);
+
+    const newUser = new this.userModel({
+      name,
+      avatar,
+    });
+
+    const savedUser = await newUser.save();
+    const userId = (savedUser._id as mongoose.Types.ObjectId).toString();
+    const token = this.jwtService.generateToken({ userId, name });
+
+    return {
+      token,
+      name,
+      avatar,
     };
   }
 }

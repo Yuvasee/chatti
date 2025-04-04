@@ -1,84 +1,80 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OpenAI } from '@langchain/openai';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { RunnableSequence } from '@langchain/core/runnables';
-import { DatabaseService } from '../database/database.service';
-
-// Define response type based on LangChain output
-interface AIMessageLike {
-  content: string | object;
-}
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Translation, TranslationDocument } from '../schemas/translation.schema';
+import { QueueService } from '../queue/queue.service';
+import OpenAI from 'openai';
 
 @Injectable()
 export class TranslationService {
   private readonly logger = new Logger(TranslationService.name);
-  private model!: OpenAI;
+  private openai: OpenAI;
 
   constructor(
     private configService: ConfigService,
-    private databaseService: DatabaseService,
+    private queueService: QueueService,
+    @InjectModel(Translation.name) private translationModel: Model<TranslationDocument>
   ) {
-    this.initializeOpenAI();
-  }
-
-  private initializeOpenAI() {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
-      this.logger.error('OPENAI_API_KEY is not defined in environment variables');
-      throw new Error('OPENAI_API_KEY is required');
+      throw new Error('OPENAI_API_KEY is not defined in environment');
     }
 
-    this.model = new OpenAI({
-      openAIApiKey: apiKey,
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0.1, // Low temperature for more accurate translations
+    this.openai = new OpenAI({
+      apiKey,
     });
   }
 
   /**
-   * Translates text from source language to target language using OpenAI
+   * Queue a message for translation
+   */
+  async queueTranslation(
+    messageId: string,
+    text: string,
+    sourceLanguage: string,
+    targetLanguage: string,
+  ): Promise<void> {
+    await this.queueService.addTranslationJob({
+      messageId,
+      originalText: text,
+      sourceLanguage,
+      targetLanguage,
+    });
+
+    this.logger.log(`Translation queued for message ${messageId} to ${targetLanguage}`);
+  }
+
+  /**
+   * Translate text using OpenAI
    */
   async translateText(
     text: string,
     sourceLanguage: string,
     targetLanguage: string,
   ): Promise<string> {
+    if (!text) {
+      return '';
+    }
+
     try {
-      const promptTemplate = new PromptTemplate({
-        template:
-          'Translate the following text from {source_language} to {target_language}. ' +
-          'Maintain the original meaning, tone, and formatting as closely as possible. ' +
-          'Focus on natural translation that sounds native in the target language:\n\n{text}',
-        inputVariables: ['source_language', 'target_language', 'text'],
+      const prompt = `Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
+          Maintain the same tone, sentiment, and meaning. Return only the translated text without any additional
+          explanations or quotes.
+          
+          Text to translate: ${text}`;
+      
+      const completion = await this.openai.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'gpt-3.5-turbo',
+        temperature: 0.1,
       });
 
-      const chain = RunnableSequence.from([promptTemplate, this.model]);
-
-      const response = await chain.invoke({
-        source_language: sourceLanguage,
-        target_language: targetLanguage,
-        text: text,
-      });
-
-      // Extract the translated text from the response
-      let translatedText: string;
-
-      if (typeof response === 'string') {
-        translatedText = response.trim();
-      } else {
-        // Assume AI message-like response with content property
-        const messageResponse = response as AIMessageLike;
-        translatedText = String(messageResponse.content).trim();
-      }
-
-      return translatedText;
+      return completion.choices[0]?.message?.content?.trim() || '';
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-      this.logger.error(`Translation error: ${errorMessage}`, errorStack);
-      throw new Error(`Failed to translate text: ${errorMessage}`);
+      this.logger.error(`Translation error: ${errorMessage}`);
+      throw error;
     }
   }
 
@@ -93,21 +89,22 @@ export class TranslationService {
   ): Promise<void> {
     // Skip translation if languages are the same
     if (sourceLanguage === targetLanguage) {
-      await this.databaseService.saveTranslation({
+      const newTranslation = new this.translationModel({
         messageId,
         originalText,
         translatedText: originalText,
         sourceLanguage,
         targetLanguage,
       });
+      await newTranslation.save();
       return;
     }
 
     try {
-      const existingTranslation = await this.databaseService.getTranslation(
+      const existingTranslation = await this.translationModel.findOne({
         messageId,
         targetLanguage,
-      );
+      }).exec();
 
       // If translation already exists, skip
       if (existingTranslation) {
@@ -119,13 +116,14 @@ export class TranslationService {
       const translatedText = await this.translateText(originalText, sourceLanguage, targetLanguage);
 
       // Save the translation to the database
-      await this.databaseService.saveTranslation({
+      const newTranslation = new this.translationModel({
         messageId,
         originalText,
         translatedText,
         sourceLanguage,
         targetLanguage,
       });
+      await newTranslation.save();
 
       this.logger.log(
         `Successfully translated message ${messageId} from ${sourceLanguage} to ${targetLanguage}`,
@@ -140,5 +138,25 @@ export class TranslationService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Get translations for a message
+   */
+  async getTranslations(messageId: string, targetLanguage: string): Promise<Translation | null> {
+    return this.translationModel.findOne({
+      messageId,
+      targetLanguage,
+    }).exec();
+  }
+
+  /**
+   * Get translations for multiple messages
+   */
+  async getTranslationsForMessages(messageIds: string[], targetLanguage: string): Promise<Translation[]> {
+    return this.translationModel.find({
+      messageId: { $in: messageIds },
+      targetLanguage,
+    }).exec();
   }
 }
