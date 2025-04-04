@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
+import { ConfigService } from '@nestjs/config';
 
 interface TranslationJobData {
   messageId: string;
@@ -12,7 +13,15 @@ interface TranslationJobData {
 
 @Injectable()
 export class TranslationProducerService {
-  constructor(@InjectQueue('translation') private translationQueue: Queue) {}
+  private readonly queueName: string;
+
+  constructor(
+    @InjectQueue('translation') 
+    private translationQueue: Queue,
+    private configService: ConfigService,
+  ) {
+    this.queueName = this.configService.get<string>('queue.translation') || 'translation';
+  }
 
   async addTranslationJob(data: TranslationJobData): Promise<void> {
     await this.translationQueue.add('translate', data, {

@@ -1,17 +1,24 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { TranslationProducerService } from './translation-producer.service';
-import * as dotenv from 'dotenv';
-
-dotenv.config({ path: '../../.env' });
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    BullModule.forRoot({
-      url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        url: `redis://${configService.get('redis.host') || 'localhost'}:${configService.get('redis.port') || '6379'}`,
+      }),
+      inject: [ConfigService],
     }),
-    BullModule.registerQueue({
+    BullModule.registerQueueAsync({
       name: 'translation',
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        name: configService.get('queue.translation'),
+      }),
+      inject: [ConfigService],
     }),
   ],
   providers: [TranslationProducerService],

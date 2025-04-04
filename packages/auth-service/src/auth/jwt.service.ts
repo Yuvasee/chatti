@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { sign, verify } from 'jsonwebtoken';
+import { sign, verify, Secret, SignOptions, VerifyOptions } from 'jsonwebtoken';
+import { ConfigService } from '@nestjs/config';
 
 interface TokenPayload {
   userId: string;
-  name: string;
+  username: string;
 }
 
 @Injectable()
 export class JwtService {
-  private readonly secret: string;
-
-  constructor() {
-    this.secret = process.env.JWT_SECRET || 'default-secret-key-for-development';
-  }
+  constructor(private configService: ConfigService) {}
 
   generateToken(payload: TokenPayload): string {
-    return sign(payload, this.secret, { expiresIn: '7d' });
+    const secret = this.configService.get<string>('jwt.secret') || 'default-secret-key-for-development';
+    const expiresIn = this.configService.get<string>('jwt.expiresIn') || '7d';
+    return sign(payload, secret as Secret, { expiresIn } as SignOptions);
   }
 
   verifyToken(token: string): TokenPayload {
     try {
-      return verify(token, this.secret) as TokenPayload;
+      const secret = this.configService.get<string>('jwt.secret') || 'default-secret-key-for-development';
+      return verify(token, secret as Secret, {} as VerifyOptions) as unknown as TokenPayload;
     } catch (error) {
       throw new Error('Invalid token');
     }

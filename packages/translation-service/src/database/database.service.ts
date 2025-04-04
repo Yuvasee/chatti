@@ -1,6 +1,7 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { MongoClient, Collection, Db } from 'mongodb';
+import { Injectable } from '@nestjs/common';
+import { Collection, Db } from 'mongodb';
+import { InjectConnection } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
 interface Translation {
   messageId: string;
@@ -12,23 +13,20 @@ interface Translation {
 }
 
 @Injectable()
-export class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  private client!: MongoClient;
-  private db!: Db;
-  private translationsCollection!: Collection<Translation>;
+export class DatabaseService {
+  private db: Db;
+  private translationsCollection: Collection<Translation>;
 
-  constructor(private configService: ConfigService) {}
-
-  async onModuleInit() {
-    const uri = this.configService.get<string>('MONGODB_URI');
-    if (!uri) {
-      throw new Error('MONGODB_URI is not defined in configuration');
-    }
-    this.client = new MongoClient(uri);
-    await this.client.connect();
-    this.db = this.client.db();
+  constructor(@InjectConnection() private connection: Connection) {
+    // Get the native MongoDB connection from Mongoose
+    this.db = this.connection.db as Db;
     this.translationsCollection = this.db.collection<Translation>('translations');
+    
+    // Initialize indexes
+    this.initializeIndexes();
+  }
 
+  private async initializeIndexes() {
     // Create indexes for faster queries
     await this.translationsCollection.createIndex({ messageId: 1 });
     await this.translationsCollection.createIndex(
@@ -38,12 +36,6 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       },
       { unique: true },
     );
-  }
-
-  async onModuleDestroy() {
-    if (this.client) {
-      await this.client.close();
-    }
   }
 
   async saveTranslation(translation: Omit<Translation, 'createdAt'>) {

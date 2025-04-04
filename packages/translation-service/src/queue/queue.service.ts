@@ -12,11 +12,15 @@ export interface TranslationJob {
 
 @Injectable()
 export class QueueService {
+  private readonly queueName: string;
+
   constructor(
-    @InjectQueue(process.env.TRANSLATION_QUEUE || 'translation-queue')
+    @InjectQueue('translation')
     private translationQueue: Queue,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.queueName = this.configService.get<string>('queue.translation') || 'translation';
+  }
 
   /**
    * Add a translation job to the queue

@@ -5,7 +5,7 @@ import { Job } from 'bullmq';
 import { TranslationService } from './translation.service';
 import { TranslationJob } from '../queue/queue.service';
 
-@Processor(process.env.TRANSLATION_QUEUE || 'translation-queue')
+@Processor('translation')
 export class TranslationProcessor {
   private readonly logger = new Logger(TranslationProcessor.name);
 

@@ -8,12 +8,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        url: `redis://${configService.get('REDIS_HOST')}:${configService.get('REDIS_PORT')}`,
+        url: `redis://${configService.get('redis.host') || 'localhost'}:${configService.get('redis.port') || '6379'}`,
       }),
       inject: [ConfigService],
     }),
-    BullModule.registerQueue({
-      name: process.env.TRANSLATION_QUEUE || 'translation-queue',
+    BullModule.registerQueueAsync({
+      name: 'translation',
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        name: configService.get('queue.translation'),
+      }),
+      inject: [ConfigService],
     }),
   ],
   providers: [QueueService],

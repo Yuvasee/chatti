@@ -1,13 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { ValidationPipe } from '@nestjs/common';
-
-// Load environment variables from the root .env file
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   app.enableCors();
 
@@ -19,8 +17,10 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.AUTH_SERVICE_PORT || 4000;
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('port') || 4000;
+  
   await app.listen(port);
-  console.log(`Auth service is running on port ${port}`);
+  logger.log(`Auth service is running on port ${port}`);
 }
 bootstrap();

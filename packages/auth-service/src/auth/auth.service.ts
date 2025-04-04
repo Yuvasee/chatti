@@ -30,7 +30,7 @@ export class AuthService {
 
     const savedUser = await newUser.save();
     const userId = (savedUser._id as mongoose.Types.ObjectId).toString();
-    const token = this.jwtService.generateToken({ userId, name: userName });
+    const token = this.jwtService.generateToken({ userId, username: userName });
 
     return {
       name: userName,
@@ -50,7 +50,7 @@ export class AuthService {
 
     const savedUser = await newUser.save();
     const userId = (savedUser._id as mongoose.Types.ObjectId).toString();
-    const token = this.jwtService.generateToken({ userId, name });
+    const token = this.jwtService.generateToken({ userId, username: name });
 
     return {
       token,
