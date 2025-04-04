@@ -7,8 +7,8 @@ Chatti is a multi-language real-time chat application designed to mitigate chall
 1. **User Opens App (Login Page)**
    - The user logs in as a guest by entering a name (no external OAuth for now).
 2. **New Chat Screen**
-   - Displays the user-friendly Chat ID in the `111-222-333` format.
-   - Provides a link (like `https://chatti-domain.com/111-222-333`) to join the chat.
+   - Displays the user-friendly Chat ID in the `123-456-789` format.
+   - Provides a link (like `https://chatti-domain.com/123-456-789`) to join the chat.
 3. **User Joins Chat**
    - The user sees real-time messages.
    - The user can select a preferred language, and all messages are translated into that language using ChatGPT.
@@ -16,7 +16,7 @@ Chatti is a multi-language real-time chat application designed to mitigate chall
 ## Additional Requirements
 
 1. **User-Friendly Chat ID**
-   - Format: `111-222-333`.
+   - Format: `123-456-789`.
    - Shown on all relevant screens.
 2. **Random Name and Avatar**
    - On guest login, generate a random name and avatar if the user has not entered a name.

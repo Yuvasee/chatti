@@ -24,7 +24,7 @@
 
 - [X] Initialize NestJS project in packages/chat-service
 - [X] Set up MongoDB connection
-- [X] Implement chat ID generation (111-222-333 format)
+- [X] Implement chat ID generation (123-456-789 format)
 - [X] Set up Socket.IO gateway
 - [X] Implement chat room management
 - [X] Add message handling and storage

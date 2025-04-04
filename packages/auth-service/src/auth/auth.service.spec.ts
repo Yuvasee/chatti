@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { DatabaseService } from '../common/database.service';
 import { JwtService } from './jwt.service';
 import { GuestService } from './guest.service';
 import { ObjectId } from 'mongodb';

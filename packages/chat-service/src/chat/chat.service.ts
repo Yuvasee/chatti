@@ -19,7 +19,7 @@ export class ChatService {
   ) {}
 
   /**
-   * Generates a chat ID in the format 111-222-333
+   * Generates a chat ID in the format 123-456-789
    */
   generateChatId(): string {
     try {
