@@ -10,6 +10,9 @@ export class User {
 
   @Prop({ required: true })
   avatar!: string;
+  
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User); 
