@@ -2,33 +2,30 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bull';
-import { TranslationRequestDto } from '@chatti/shared-types';
+import { 
+  TranslationRequestDto, 
+  QueueNames, 
+  ProcessorNames,
+  DEFAULT_JOB_OPTIONS 
+} from '@chatti/shared-types';
 
 @Injectable()
 export class QueueService {
   private readonly queueName: string;
 
   constructor(
-    @InjectQueue('translation')
+    @InjectQueue(QueueNames.TRANSLATION)
     private translationQueue: Queue,
     private configService: ConfigService,
   ) {
-    this.queueName = this.configService.get<string>('queue.translation') || 'translation';
+    this.queueName = this.configService.get<string>('queue.translation') || QueueNames.TRANSLATION;
   }
 
   /**
    * Add a translation job to the queue
    */
   async addTranslationJob(job: TranslationRequestDto) {
-    return this.translationQueue.add('translate', job, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5000,
-      },
-      removeOnComplete: true,
-      removeOnFail: false,
-    });
+    return this.translationQueue.add(ProcessorNames.TRANSLATE, job, DEFAULT_JOB_OPTIONS);
   }
 
   /**
