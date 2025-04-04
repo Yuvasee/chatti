@@ -123,6 +123,42 @@ Organize imports in this order with blank lines between groups:
 2. Internal modules
 3. DTOs and schemas
 
+## DTO Validation Practices
+
+- Use `class-validator` decorators for all DTOs
+- Follow consistent pattern for validation:
+  - Required properties: `@IsNotEmpty()`, `@IsString()`, etc.
+  - Optional properties: mark with `?` and use appropriate validators
+  - Use validation groups when needed for create/update operations
+- Use `ValidationPipe` in controllers and gateways
+- Centralize validation error handling in error filters
+
+## Testing Standards
+
+- Unit tests: `.spec.ts` suffix in same directory as tested file
+- E2E tests: `.e2e-spec.ts` suffix in `/test` directory
+- Test database schemas with dedicated schema tests
+- Use consistent testing utilities from shared packages
+- Follow AAA pattern (Arrange-Act-Assert) in all tests
+
+## Environment Configuration
+
+- Use NestJS ConfigModule for all environment variables
+- Follow consistent naming convention:
+  - Database: `MONGO_URI`, `MONGO_DB_NAME`
+  - Redis/Queue: `REDIS_HOST`, `REDIS_PORT`
+  - Service-specific: `AUTH_JWT_SECRET`, `TRANSLATION_API_KEY`
+- Group related settings with common prefixes
+- Document all environment variables in service documentation
+
+## Error Handling Patterns
+
+- Use structured try/catch blocks with specific error types
+- Follow error bubbling pattern - handle errors at appropriate levels
+- Log errors with consistent format and context
+- Return standardized error responses with appropriate HTTP codes
+- Use shared error types from `shared-types` package
+
 ## Documentation
 
 - Use JSDoc-style comments for public APIs, methods, and classes

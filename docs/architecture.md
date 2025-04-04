@@ -253,6 +253,24 @@ All services implement consistent error handling:
 - Common error types from `shared-types`
 - Each service has specific error handling for its domain
 
+## Shared Database Utilities
+
+All services use standardized database access patterns:
+- Mongoose schema definitions with consistent validation
+- Common database connection configuration via environment variables
+- Shared database utilities in `shared-types/database`:
+  - `mongoose.utils.ts` with common schema utilities
+  - Base collection service for standardized CRUD operations
+  - Consistent MongoDB query patterns
+
+## API Documentation
+
+All services implement standardized API documentation:
+- Swagger annotations on all controllers
+- Consistent API response formats and error codes
+- Shared API documentation standards
+- Each service exposes its own Swagger UI endpoint
+
 ## Module Export Patterns
 
 - **Internal Modules**: Only export what is needed by other modules within the service
