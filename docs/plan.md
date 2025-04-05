@@ -46,9 +46,9 @@
 
 ## 3. Frontend Development
 
-- [ ] Initialize React + Vite project in packages/web
-- [ ] Set up Material UI
-- [ ] Implement basic routing
+- [X] Initialize React + Vite project in packages/web
+- [X] Set up Material UI
+- [X] Implement basic routing
 - [ ] Create login page with guest login
 - [ ] Add random name/avatar generation UI
 - [ ] Implement chat page with Socket.IO integration
