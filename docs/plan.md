@@ -44,20 +44,40 @@
 - [X] Add MongoDB service for storing/retrieving translations
 - [X] Implement error handling and retry logic for translations
 
-## 3. Frontend Development
+## 3. Frontend Layouts Development
 
 - [X] Initialize React + Vite project in packages/web
 - [X] Set up Material UI
 - [X] Implement basic routing
-- [ ] Create login page with guest login
-- [ ] Add random name/avatar generation UI
-- [ ] Implement chat page with Socket.IO integration
-- [ ] Add language selector component
-- [ ] Create chat ID display and sharing UI
-- [ ] Implement real-time message display
-- [ ] Add translation display logic
+- [X] Create login page UI with guest login form
+- [X] Add random name/avatar generation UI components
+- [X] Implement chat page UI layout
+- [X] Add language selector component
+- [X] Create chat ID display and sharing UI
+- [X] Implement message display components
+- [X] Add translation UI components
 
-## 4. Smoke Testing
+## 4. Frontend-Backend Integration
+
+- [ ] Create API client service for Auth Service
+  - [ ] Implement guest login API integration
+  - [ ] Add JWT token storage and retrieval
+  - [ ] Implement authentication header handling
+- [ ] Create Socket.IO client service for Chat Service
+  - [ ] Implement connection and reconnection logic with authentication
+  - [ ] Add chat room joining functionality
+  - [ ] Implement message sending via socket
+  - [ ] Handle real-time message reception
+- [ ] Integrate translation functionality
+  - [ ] Handle language change notifications
+  - [ ] Process and display translated messages
+  - [ ] Show translation status indicators
+- [ ] Add error handling and retry logic
+  - [ ] Handle connection failures
+  - [ ] Implement token refresh logic
+  - [ ] Add error notifications to UI
+
+## 5. Smoke Testing
 
 - [ ] Test guest login flow
 - [ ] Test chat creation and joining
