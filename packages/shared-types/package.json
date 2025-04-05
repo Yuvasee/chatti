@@ -10,18 +10,16 @@
   },
   "dependencies": {
     "class-validator": "^0.14.0",
-    "uuid": "^11.1.0"
-  },
-  "devDependencies": {
-    "@types/uuid": "^10.0.0",
-    "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
+    "uuid": "^11.1.0",
     "@nestjs/bull": "^11.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/mongoose": "^11.0.0",
     "bullmq": "^5.0.0",
     "mongoose": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.0.0"
   }
 }

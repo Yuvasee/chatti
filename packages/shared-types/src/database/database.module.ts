@@ -12,15 +12,12 @@ export class DatabaseModule {
         MongooseModule.forRootAsync({
           imports: [ConfigModule],
           useFactory: (configService: ConfigService) => {
-            const username = configService.get<string>('MONGO_INITDB_ROOT_USERNAME') || 'admin';
-            const password = configService.get<string>('MONGO_INITDB_ROOT_PASSWORD');
             const host = configService.get<string>('MONGO_HOST') || 'localhost';
             const port = configService.get<string>('MONGO_PORT') || '27017';
             const dbName = configService.get<string>('MONGO_DB_NAME') || 'chatti';
             
-            const uri = password 
-              ? `mongodb://${username}:${password}@${host}:${port}/${dbName}`
-              : `mongodb://${host}:${port}/${dbName}`;
+            // For development, don't use authentication
+            const uri = `mongodb://${host}:${port}/${dbName}`;
               
             return { uri };
           },

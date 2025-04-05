@@ -6,6 +6,8 @@ import { ChatGateway } from './chat.gateway';
 import { Chat, ChatSchema } from '../schemas/chat.schema';
 import { Message, MessageSchema } from '../schemas/message.schema';
 import { ChatController } from './chat.controller';
+import { QueueModule } from '../queue/queue.module';
+import { LoggingModule } from '@chatti/shared-types';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { ChatController } from './chat.controller';
       { name: Chat.name, schema: ChatSchema },
       { name: Message.name, schema: MessageSchema },
     ]),
+    QueueModule,
+    LoggingModule
   ],
   controllers: [ChatController],
   providers: [ChatService, MessageService, ChatGateway],
