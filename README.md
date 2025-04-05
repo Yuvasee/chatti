@@ -20,10 +20,10 @@ To start the development environment:
 
 ```bash
 # Start all services
-npm run dev
+yarn dev
 
 # Stop all services
-npm run stop
+yarn stop
 ```
 
 The application will be available at:

@@ -2,7 +2,7 @@
 
 ## 1. Project Setup
 
-- [X] Initialize monorepo structure with npm workspaces
+- [X] Initialize monorepo structure with yarn workspaces
 - [X] Create root package.json with workspace configuration
 - [X] Set up docker-compose.yml with all required services
 - [X] Create .env template with required environment variables
@@ -59,28 +59,55 @@
 
 ## 4. Frontend-Backend Integration
 
-- [ ] Create API client service for Auth Service
-  - [ ] Implement guest login API integration
-  - [ ] Add JWT token storage and retrieval
-  - [ ] Implement authentication header handling
+- [X] Create API client service for Auth Service
+  - [X] Implement guest login API integration
+  - [X] Add JWT token storage and retrieval
+  - [X] Implement authentication header handling
+  - [X] Use shared DTOs from @chatti/shared-types for type consistency
+
+> **Important Note:** For all remaining API integration tasks, always use the shared DTOs from `@chatti/shared-types` package for consistent typing between frontend and backend. This includes response types (ApiResponseDto, LoginResponseDto, etc.), request types (LoginDto, etc.), and payload types (TokenPayloadDto, etc.).
+
 - [ ] Create Socket.IO client service for Chat Service
-  - [ ] Implement connection and reconnection logic with authentication
-  - [ ] Add chat room joining functionality
-  - [ ] Implement message sending via socket
-  - [ ] Handle real-time message reception
+  - [ ] Create ChatService in packages/web/src/api/ChatService.ts using socket.io-client
+  - [ ] Implement connection with JWT token authentication via AuthService
+  - [ ] Add reconnection logic with error handling
+  - [ ] Create chat room joining methods using formatted chat IDs
+  - [ ] Add message sending interface with typing indicators
+  - [ ] Implement event handlers for real-time message reception
+  - [ ] Use shared message and event DTOs from @chatti/shared-types
 - [ ] Integrate translation functionality
-  - [ ] Handle language change notifications
-  - [ ] Process and display translated messages
-  - [ ] Show translation status indicators
-- [ ] Add error handling and retry logic
-  - [ ] Handle connection failures
-  - [ ] Implement token refresh logic
-  - [ ] Add error notifications to UI
+  - [ ] Create TranslationService in packages/web/src/api/TranslationService.ts
+  - [ ] Implement language change socket events
+  - [ ] Update ChatContext with translation state management
+  - [ ] Add UI components for displaying translation status
+  - [ ] Implement caching for already translated messages
+  - [ ] Use shared translation DTOs from @chatti/shared-types
+- [ ] Add error handling and notifications
+  - [ ] Create NotificationContext for centralized error handling
+  - [ ] Implement connection status indicators
+  - [ ] Add automatic token refresh on expiration
+  - [ ] Create toast notification components for errors and events
+  - [ ] Use shared error types from @chatti/shared-types where applicable
 
 ## 5. Smoke Testing
 
 - [ ] Test guest login flow
+  - [ ] Verify token storage and retrieval
+  - [ ] Test login with custom name vs. random name
+  - [ ] Confirm avatar generation
 - [ ] Test chat creation and joining
+  - [ ] Test chat ID generation and validation
+  - [ ] Test room joining with authentication
+  - [ ] Verify chat state persistence
 - [ ] Test real-time messaging
+  - [ ] Confirm message delivery
+  - [ ] Test multi-user scenarios
+  - [ ] Verify typing indicators
 - [ ] Test translation functionality
-- [ ] Test multi-language scenarios
+  - [ ] Test language switching
+  - [ ] Verify message translation accuracy
+  - [ ] Test performance with many messages
+- [ ] Test error scenarios and recovery
+  - [ ] Test connection loss and recovery
+  - [ ] Verify error notifications
+  - [ ] Test token expiration handling

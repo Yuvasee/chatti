@@ -361,7 +361,13 @@
   version "1.0.0"
   resolved "file:packages/shared-types"
   dependencies:
+    "@nestjs/bull" "^11.0.0"
+    "@nestjs/common" "^11.0.0"
+    "@nestjs/config" "^4.0.0"
+    "@nestjs/mongoose" "^11.0.0"
+    bullmq "^5.0.0"
     class-validator "^0.14.0"
+    mongoose "^8.0.0"
     uuid "^11.1.0"
 
 "@colors/colors@1.5.0":
@@ -2555,6 +2561,15 @@ available-typed-arrays@^1.0.7:
   dependencies:
     possible-typed-array-names "^1.0.0"
 
+axios@^1.8.4:
+  version "1.8.4"
+  resolved "https://registry.npmjs.org/axios/-/axios-1.8.4.tgz"
+  integrity sha512-eBSYY4Y68NNlHbHBMdeDmKNtDgXWhQsJcGqzO3iLUM0GraQFSS9cVgPX5I9b3lbdFKyYoAEGAZF1DwhTaljNAw==
+  dependencies:
+    follow-redirects "^1.15.6"
+    form-data "^4.0.0"
+    proxy-from-env "^1.1.0"
+
 b4a@^1.6.4:
   version "1.6.7"
   resolved "https://registry.npmjs.org/b4a/-/b4a-1.6.7.tgz"
@@ -2891,6 +2906,7 @@ chardet@^0.7.0:
     "@nestjs/platform-express" "^11.0.1"
     "@nestjs/platform-socket.io" "^11.0.12"
     "@nestjs/websockets" "^11.0.12"
+    bull "^4.12.2"
     bullmq "^5.45.2"
     dotenv "^16.4.7"
     mongodb "^6.15.0"
@@ -4260,7 +4276,7 @@ flatted@^3.2.9:
   resolved "https://registry.npmjs.org/flatted/-/flatted-3.3.3.tgz"
   integrity sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg==
 
-follow-redirects@^1.15.9:
+follow-redirects@^1.15.6, follow-redirects@^1.15.9:
   version "1.15.9"
   resolved "https://registry.npmjs.org/follow-redirects/-/follow-redirects-1.15.9.tgz"
   integrity sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ==
@@ -6517,6 +6533,11 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
+proxy-from-env@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/proxy-from-env/-/proxy-from-env-1.1.0.tgz"
+  integrity sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==
+
 punycode@^2.1.0, punycode@^2.3.1:
   version "2.3.1"
   resolved "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz"
@@ -7626,6 +7647,7 @@ tr46@~0.0.3:
     "@nestjs/core" "^11.0.1"
     "@nestjs/mongoose" "^11.0.0"
     "@nestjs/platform-express" "^11.0.1"
+    bull "^4.12.2"
     bullmq "^5.45.2"
     mongoose "^8.0.0"
     openai "^4.12.0"
@@ -7995,6 +8017,7 @@ web-streams-polyfill@4.0.0-beta.3:
     "@emotion/styled" "^11.14.0"
     "@mui/icons-material" "^7.0.1"
     "@mui/material" "^7.0.1"
+    axios "^1.8.4"
     react "^19.0.0"
     react-dom "^19.0.0"
     react-router-dom "^7.5.0"

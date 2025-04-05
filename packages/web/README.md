@@ -27,7 +27,7 @@ npm install
 
 ```bash
 # Start the development server
-npm run dev
+yarn dev
 ```
 
 The application will be available at http://localhost:5173 by default.
@@ -36,7 +36,7 @@ The application will be available at http://localhost:5173 by default.
 
 ```bash
 # Build the application
-npm run build
+yarn build
 ```
 
 ## Project Structure

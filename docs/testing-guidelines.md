@@ -67,13 +67,13 @@ From the service directory:
 
 ```bash
 # Run unit tests
-npm test
+yarn test
 
 # Run unit tests with coverage
-npm run test:cov
+yarn test:cov
 
 # Run E2E tests
-npm run test:e2e
+yarn test:e2e
 ```
 
 ## Test Dependencies
