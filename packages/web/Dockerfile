@@ -1,4 +1,4 @@
-FROM node:20-alpine as build
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -27,15 +27,9 @@ COPY packages/web/vite.config.ts ./packages/web/
 COPY packages/shared-types/src ./packages/shared-types/src/
 RUN cd packages/shared-types && yarn build
 
-# Build the app
-RUN cd packages/web && yarn build
-
-# Production stage
-FROM nginx:alpine
-
-COPY --from=build /app/packages/web/dist /usr/share/nginx/html
-COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app/packages/web
 
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"] 
+# Run in development mode with hot reloading
+CMD ["yarn", "dev", "--host", "0.0.0.0", "--port", "3000"] 

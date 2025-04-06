@@ -10,6 +10,8 @@ services:
     environment:
       - VITE_AUTH_SERVICE_URL=http://localhost:4000
       - VITE_CHAT_SERVICE_URL=http://localhost:4001
+    volumes:
+      - ./packages/web/src:/app/packages/web/src
     depends_on:
       - auth-service
       - chat-service

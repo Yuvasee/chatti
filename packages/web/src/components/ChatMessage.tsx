@@ -1,5 +1,6 @@
 import { Box, Paper, Typography, Avatar, Tooltip } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { formatTime } from '../utils';
 
 interface ChatMessageProps {
   content: string;
@@ -41,11 +42,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   // Get translation for selected language, if available
   const translation = translations.find(t => t.language === selectedLanguage);
   
-  // Format timestamp as a human-readable string
-  const formattedTime = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric',
-  }).format(timestamp);
+  // Format timestamp using the utility function
+  const formattedTime = formatTime(timestamp);
 
   return (
     <Box

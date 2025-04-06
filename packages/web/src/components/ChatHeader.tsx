@@ -9,23 +9,29 @@ import {
   Select, 
   SelectChangeEvent, 
   FormControl, 
-  InputLabel 
+  InputLabel,
+  Badge
 } from '@mui/material';
 import { useState } from 'react';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
+import WifiIcon from '@mui/icons-material/Wifi';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
+import { copyLinkToClipboard, shareChat } from '../utils';
 
 interface ChatHeaderProps {
   chatId: string;
   selectedLanguage: string;
   onLanguageChange: (language: string) => void;
+  isConnected?: boolean;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({ 
   chatId, 
   selectedLanguage, 
-  onLanguageChange 
+  onLanguageChange,
+  isConnected = true
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -39,23 +45,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/chat/${chatId}`;
-    navigator.clipboard.writeText(url);
+    copyLinkToClipboard(chatId);
     handleMenuClose();
   };
 
   const handleShare = () => {
-    // Would implement native share API here for mobile
-    const url = `${window.location.origin}/chat/${chatId}`;
-    if (navigator.share) {
-      navigator.share({
-        title: 'Join my Chatti chat',
-        text: 'Join my multilingual chat on Chatti!',
-        url: url,
-      });
-    } else {
-      handleCopyLink();
-    }
+    shareChat(chatId);
     handleMenuClose();
   };
 
@@ -83,6 +78,17 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           >
             {chatId}
           </Typography>
+          <Badge
+            color={isConnected ? "success" : "error"}
+            variant="dot"
+            sx={{ ml: 2 }}
+          >
+            {isConnected ? (
+              <WifiIcon fontSize="small" />
+            ) : (
+              <WifiOffIcon fontSize="small" />
+            )}
+          </Badge>
         </Box>
         
         <FormControl variant="outlined" size="small" sx={{ 
