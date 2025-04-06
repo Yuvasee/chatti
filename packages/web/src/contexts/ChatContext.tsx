@@ -1,16 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { ChatService, AuthService } from '../api';
-import { 
-  MessageDto,
-  
-} from '@chatti/shared-types';
+import { MessageResponseDto } from '@chatti/shared-types';
 import { SOCKET_EVENTS } from '../constants/chat-events';
 
-// Extended Message type with additional frontend properties
-export interface Message extends MessageDto {
-  id?: string;
-  timestamp?: Date;
-  translations?: Record<string, string>;
+// Extended Message type with frontend properties - uses the response DTO which already has
+// id, createdAt, and translations fields from the server
+export interface Message extends MessageResponseDto {
+  // Any additional frontend-specific properties can be added here
 }
 
 // User presence type
@@ -184,6 +180,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         
         // Update messages with the recent messages from the response
         if (response && response.recentMessages && response.recentMessages.length > 0) {
+          // The backend sorts by createdAt: -1 (newest first), but we want to display oldest first
+          // The actual sorting will be handled in ChatPage component
           setMessages(response.recentMessages);
         } else {
           setMessages([]);
@@ -255,6 +253,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const handleMessageReceived = (message: Message) => {
+    // The backend already includes createdAt, so use it as is
     setMessages(prevMessages => [...prevMessages, message]);
   };
 

@@ -9,7 +9,7 @@ export interface FormattedMessage {
     name: string;
     avatar: string;
   };
-  timestamp: Date;
+  timestamp: Date; // Keep timestamp for UI display but derive from createdAt
   translations: Array<{ language: string; text: string }>;
 }
 
@@ -17,14 +17,17 @@ export interface FormattedMessage {
  * Formats a message from the Chat context to the format expected by UI components
  */
 export const formatMessage = (msg: Message): FormattedMessage => ({
-  id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+  id: msg.id,
   content: msg.content,
   sender: {
     id: msg.userId,
     name: msg.username,
     avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.userId}`,
   },
-  timestamp: msg.timestamp || new Date(),
+  // Use createdAt from the server converted to a Date object for display
+  timestamp: msg.createdAt instanceof Date 
+    ? msg.createdAt 
+    : new Date(msg.createdAt),
   translations: msg.translations ? 
     Object.entries(msg.translations).map(([language, text]) => ({ 
       language, 

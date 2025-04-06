@@ -98,7 +98,15 @@ const ChatPage: React.FC = () => {
     return null;
   }
 
-  const formattedMessages = messages.map(formatMessage);
+  // Sort messages by timestamp chronologically (oldest first)
+  const formattedMessages = messages
+    .slice() // Create a copy to avoid mutating the original array
+    .sort((a, b) => {
+      const timeA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+      const timeB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+      return timeA - timeB;
+    })
+    .map(formatMessage);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
