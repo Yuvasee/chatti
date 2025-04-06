@@ -28,6 +28,7 @@ const MessagePaper = styled(Paper, {
   backgroundColor: isCurrentUser ? theme.palette.primary.light : theme.palette.grey[100],
   color: isCurrentUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
   maxWidth: '75%',
+  width: 'fit-content',
   wordBreak: 'break-word',
 }));
 
@@ -57,6 +58,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       <Box
         sx={{
           display: 'flex',
+          width: '100%',
           flexDirection: isCurrentUser ? 'row-reverse' : 'row',
           alignItems: 'flex-start',
           gap: 1,
@@ -72,7 +74,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </Tooltip>
         )}
 
-        <Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
           {!isCurrentUser && (
             <Typography variant="caption" sx={{ ml: 1.5, display: 'block', mb: 0.5 }}>
               {sender.name}

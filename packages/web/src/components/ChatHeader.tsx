@@ -9,16 +9,13 @@ import {
   Select, 
   SelectChangeEvent, 
   FormControl, 
-  InputLabel,
-  Badge
 } from '@mui/material';
 import { useState } from 'react';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
-import WifiIcon from '@mui/icons-material/Wifi';
-import WifiOffIcon from '@mui/icons-material/WifiOff';
 import { copyLinkToClipboard, shareChat } from '../utils';
+import CopyNotification from './CopyNotification';
 
 interface ChatHeaderProps {
   chatId: string;
@@ -35,6 +32,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const [showCopyNotification, setShowCopyNotification] = useState(false);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState<HTMLElement | null>(null);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -44,8 +43,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     setAnchorEl(null);
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = (event: React.MouseEvent<HTMLElement>) => {
     copyLinkToClipboard(chatId);
+    setNotificationAnchorEl(event.currentTarget);
+    setShowCopyNotification(true);
     handleMenuClose();
   };
 
@@ -58,6 +59,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     onLanguageChange(event.target.value);
   };
 
+  const handleCloseNotification = () => {
+    setShowCopyNotification(false);
+    setNotificationAnchorEl(null);
+  };
+
   return (
     <AppBar position="static" color="primary" elevation={0}>
       <Toolbar>
@@ -66,29 +72,31 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             Chatti
           </Typography>
           <Typography 
-            variant="body1" 
-            component="div" 
+            variant="body2" 
+            component="div"
+            noWrap 
             sx={{ 
               backgroundColor: 'rgba(255,255,255,0.15)', 
               borderRadius: 1,
               px: 1.5,
               py: 0.5,
-              fontFamily: 'monospace'
+              fontFamily: 'monospace',
+              maxWidth: { xs: '160px', sm: '320px' },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.25)',
+              }
             }}
+            onClick={handleCopyLink}
+            title="Click to copy chat ID"
           >
             {chatId}
+            <ContentCopyIcon fontSize="small" sx={{ ml: 0.5, fontSize: '0.9rem' }} />
           </Typography>
-          <Badge
-            color={isConnected ? "success" : "error"}
-            variant="dot"
-            sx={{ ml: 2 }}
-          >
-            {isConnected ? (
-              <WifiIcon fontSize="small" />
-            ) : (
-              <WifiOffIcon fontSize="small" />
-            )}
-          </Badge>
         </Box>
         
         <FormControl variant="outlined" size="small" sx={{ 
@@ -143,6 +151,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             Share chat
           </MenuItem>
         </Menu>
+
+        <CopyNotification 
+          show={showCopyNotification}
+          anchorEl={notificationAnchorEl}
+          onClose={handleCloseNotification}
+        />
       </Toolbar>
     </AppBar>
   );

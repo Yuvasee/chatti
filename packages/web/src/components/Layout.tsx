@@ -23,7 +23,18 @@ const Layout: React.FC<LayoutProps> = ({
           </Toolbar>
         </AppBar>
       )}
-      <Container component="main" sx={{ flexGrow: 1, py: 3 }}>
+      <Container 
+        component="main"
+        maxWidth={false}
+        sx={{ 
+          flexGrow: 1, 
+          py: 3,
+          maxWidth: '800px',
+          width: '100%',
+          px: { xs: 0, sm: 2 }
+        }}
+        disableGutters
+      >
         {children}
       </Container>
     </Box>

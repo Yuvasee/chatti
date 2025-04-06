@@ -114,7 +114,6 @@ const ChatPage: React.FC = () => {
         chatId={chatId}
         selectedLanguage={user.language}
         onLanguageChange={handleLanguageChange}
-        isConnected={isConnected}
       />
       
       <Box sx={{ 
