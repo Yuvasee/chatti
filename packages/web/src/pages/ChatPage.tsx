@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, Typography, Paper, Divider, CircularProgress } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Typography, Paper, Divider, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import ChatHeader from '../components/ChatHeader';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
 import { useAuth, useChat } from '../contexts';
-import { createTypingHandler, formatMessage, FormattedMessage } from '../utils';
+import { createTypingHandler, formatMessage } from '../utils';
 
 const ChatPage: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, setUserLanguage } = useAuth();
   const { 
     messages, 
@@ -17,13 +18,14 @@ const ChatPage: React.FC = () => {
     isConnected, 
     error, 
     joinChat, 
-    leaveChat, 
     sendMessage, 
     startTyping, 
     stopTyping,
-    currentChatId
+    currentChatId,
+    clearError
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showError, setShowError] = useState(false);
   
   // Setup typing handler
   const { handleTyping } = createTypingHandler(startTyping, stopTyping);
@@ -31,37 +33,30 @@ const ChatPage: React.FC = () => {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login');
+      // Ensure we pass the current location so we can come back to this chat after login
+      navigate('/login', { state: { from: location } });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location]);
 
   // Join chat when component mounts
   useEffect(() => {
-    if (isAuthenticated && chatId) {
-      const setupChat = async () => {
-        try {
-          // Only join if not already in this chat
-          if (currentChatId !== chatId) {
-            await joinChat(chatId);
-          }
-        } catch (error) {
-          console.error('Failed to join chat:', error);
-        }
-      };
-
-      setupChat();
+    if (isAuthenticated && chatId && currentChatId !== chatId) {
+      joinChat(chatId).catch(err => {
+        console.error('Failed to join chat:', err);
+      });
     }
-  }, [chatId, isAuthenticated, joinChat, leaveChat, currentChatId]);
+  }, [chatId, isAuthenticated, joinChat, currentChatId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Log errors
+  // Handle errors
   useEffect(() => {
     if (error) {
       console.error('Chat error:', error);
+      setShowError(true);
     }
   }, [error]);
 
@@ -72,11 +67,31 @@ const ChatPage: React.FC = () => {
       await sendMessage(content, user.language);
     } catch (err) {
       console.error('Failed to send message:', err);
+      
+      // Check for NOT_CHAT_MEMBER error code
+      const errorCode = (err as any)?.code;
+      if (errorCode === 'NOT_CHAT_MEMBER') {
+        try {
+          // Rejoin the chat and try again
+          await joinChat(chatId);
+          await sendMessage(content, user.language);
+        } catch (retryErr) {
+          console.error('Failed to resend message after rejoining:', retryErr);
+          setShowError(true);
+        }
+      } else {
+        setShowError(true);
+      }
     }
   };
 
   const handleLanguageChange = (newLanguage: string) => {
     setUserLanguage(newLanguage);
+  };
+
+  const handleCloseError = () => {
+    setShowError(false);
+    clearError();
   };
 
   if (!chatId || !user) {
@@ -156,6 +171,17 @@ const ChatPage: React.FC = () => {
           disabled={!isConnected}
         />
       </Box>
+
+      <Snackbar 
+        open={showError} 
+        autoHideDuration={6000} 
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+          {error?.message || 'An error occurred. Please try again.'}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

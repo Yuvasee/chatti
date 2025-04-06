@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, Typography, CircularProgress, Paper } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import LoginForm from '../components/LoginForm';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,27 +11,37 @@ const SAMPLE_NAME = 'Guest' + Math.floor(Math.random() * 1000);
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading: authLoading, isAuthenticated } = useAuth();
   const { createChat, isLoading: chatLoading } = useChat();
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   
-  // If already authenticated, redirect to chat after creating a new chat
+  // If already authenticated, redirect to previous location or create a new chat
   useEffect(() => {
-    const handleChatCreation = async () => {
+    const handleRedirectAfterLogin = async () => {
       if (isAuthenticated && !isCreatingChat) {
         try {
           setIsCreatingChat(true);
-          const chatId = await createChat();
-          navigate(`/chat/${chatId}`);
+          
+          // Check if we have a previous location to return to
+          const from = location.state?.from?.pathname;
+          if (from && from.startsWith('/chat/')) {
+            // Return to the original chat
+            navigate(from);
+          } else {
+            // Create a new chat if there's no specific destination
+            const chatId = await createChat();
+            navigate(`/chat/${chatId}`);
+          }
         } catch (error) {
-          console.error('Failed to create chat:', error);
+          console.error('Failed to redirect after login:', error);
           setIsCreatingChat(false);
         }
       }
     };
     
-    handleChatCreation();
-  }, [isAuthenticated, navigate, createChat, isCreatingChat]);
+    handleRedirectAfterLogin();
+  }, [isAuthenticated, navigate, createChat, isCreatingChat, location.state]);
 
   const handleLogin = async (name: string) => {
     try {
@@ -72,7 +82,9 @@ const LoginPage: React.FC = () => {
               gap: 2,
             }}
           >
-            <Typography variant="h6">Creating your chat room...</Typography>
+            <Typography variant="h6">
+              {location.state?.from?.pathname ? 'Joining your chat...' : 'Creating your chat room...'}
+            </Typography>
             <CircularProgress />
           </Paper>
         ) : (

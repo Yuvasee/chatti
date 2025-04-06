@@ -5,7 +5,7 @@ import {
   MessageDto,
   CreateChatDto,
   SocketResponseDto,
-  
+  ErrorCode
 } from '@chatti/shared-types';
 import { TranslationCompleteEvent } from '../contexts/ChatContext';
 import { SOCKET_EVENTS } from '../constants/chat-events';
@@ -224,7 +224,12 @@ export class ChatService {
           } else {
             const errorMessage = response.message || 'Unknown error';
             console.error('ChatService: Failed to create chat:', errorMessage);
-            reject(new Error(errorMessage));
+            
+            const error = new Error(errorMessage);
+            if (response.code) {
+              (error as any).code = response.code;
+            }
+            reject(error);
           }
         }
       );
@@ -267,7 +272,12 @@ export class ChatService {
             resolve(response.data);
           } else {
             console.error('ChatService: Failed to join chat:', response.message || 'Unknown error');
-            reject(new Error(response.message || 'Failed to join chat'));
+            
+            const error = new Error(response.message || 'Failed to join chat');
+            if (response.code) {
+              (error as any).code = response.code;
+            }
+            reject(error);
           }
         }
       );
@@ -306,7 +316,12 @@ export class ChatService {
             resolve();
           } else {
             console.error('ChatService: Failed to leave chat:', response.message || 'Unknown error');
-            reject(new Error(response.message || 'Failed to leave chat'));
+            
+            const error = new Error(response.message || 'Failed to leave chat');
+            if (response.code) {
+              (error as any).code = response.code;
+            }
+            reject(error);
           }
         }
       );
@@ -346,8 +361,13 @@ export class ChatService {
           if (response.success) {
             resolve();
           } else {
-            console.error('ChatService: Failed to send message:', response.message || 'Unknown error');
-            reject(new Error(response.message || 'Failed to send message'));
+            console.error('ChatService: Failed to send message:', response.message || 'Unknown error', response.code);
+            const error = new Error(response.message || 'Failed to send message');
+            // Add the error code as a property to the Error object
+            if (response.code) {
+              (error as any).code = response.code;
+            }
+            reject(error);
           }
         }
       );

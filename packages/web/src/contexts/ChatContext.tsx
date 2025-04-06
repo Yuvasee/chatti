@@ -354,8 +354,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   };
 
-  // Provide the context value
-  const contextValue: ChatContextState = {
+  // Create context value object
+  const value: ChatContextState = {
     isConnected,
     currentChatId,
     messages,
@@ -374,7 +374,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   return (
-    <ChatContext.Provider value={contextValue}>
+    <ChatContext.Provider value={value}>
       {children}
     </ChatContext.Provider>
   );
