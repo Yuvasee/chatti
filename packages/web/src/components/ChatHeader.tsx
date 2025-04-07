@@ -10,10 +10,12 @@ import {
 import { useState } from 'react';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import ShareIcon from '@mui/icons-material/Share';
-import { copyLinkToClipboard, shareChat } from '../utils';
+import AddIcon from '@mui/icons-material/Add';
+import { useNavigate } from 'react-router-dom';
+import { copyLinkToClipboard } from '../utils';
 import CopyNotification from './CopyNotification';
 import LanguageSelector from './LanguageSelector';
+import { useChat } from '../contexts';
 
 interface ChatHeaderProps {
   chatId: string;
@@ -28,6 +30,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const open = Boolean(anchorEl);
   const [showCopyNotification, setShowCopyNotification] = useState(false);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState<HTMLElement | null>(null);
+  const navigate = useNavigate();
+  const { createChat } = useChat();
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -44,8 +48,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     handleMenuClose();
   };
 
-  const handleShare = () => {
-    shareChat(chatId);
+  const handleNewChat = async () => {
+    try {
+      const newChatId = await createChat();
+      navigate(`/chat/${newChatId}`);
+    } catch (err) {
+      console.error('Failed to create new chat:', err);
+    }
     handleMenuClose();
   };
 
@@ -113,9 +122,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
             Copy chat link
           </MenuItem>
-          <MenuItem onClick={handleShare}>
-            <ShareIcon fontSize="small" sx={{ mr: 1 }} />
-            Share chat
+          <MenuItem onClick={handleNewChat}>
+            <AddIcon fontSize="small" sx={{ mr: 1 }} />
+            New chat
           </MenuItem>
         </Menu>
 

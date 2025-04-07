@@ -39,8 +39,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const avatarUrl = `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${username}`;
   
   // Get translation for selected language, if available
-  const translatedText = translations?.[currentLanguage];
-  const hasTranslation = !!translatedText;
+  // For current user's messages, always show the original content, never show translations
+  const translatedText = isCurrentUser ? null : translations?.[currentLanguage];
+  const hasTranslation = !isCurrentUser && !!translatedText;
   
   // Check if translation is needed or pending
   const isTranslationNeeded = !isCurrentUser && currentLanguage !== language && !hasTranslation;
@@ -93,8 +94,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               {hasTranslation ? translatedText : content}
             </Typography>
             
-            {/* Show original text toggle if this is a translation and not using default language */}
-            {hasTranslation && !isDefaultLanguage && (
+            {/* Show original text toggle if this is a translation */}
+            {hasTranslation && (
               <>
                 <Box 
                   sx={{ 

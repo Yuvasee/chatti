@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, FormControl, MenuItem, Select, Typography, SelectChangeEvent } from '@mui/material';
 import { useChat } from '../contexts/ChatContext';
+import { getLanguageFlag } from '../utils/languageUtils';
 
 interface LanguageSelectorProps {
   variant?: 'simple' | 'full';
@@ -37,7 +38,10 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'simple' 
         >
           {availableLanguages.map((lang) => (
             <MenuItem key={lang.code} value={lang.code}>
-              {lang.name}
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ marginRight: '8px' }}>{getLanguageFlag(lang.code)}</span>
+                {lang.name}
+              </Box>
             </MenuItem>
           ))}
         </Select>
@@ -58,7 +62,10 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'simple' 
         >
           {availableLanguages.map((lang) => (
             <MenuItem key={lang.code} value={lang.code}>
-              {lang.name}
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ marginRight: '8px' }}>{getLanguageFlag(lang.code)}</span>
+                {lang.name}
+              </Box>
             </MenuItem>
           ))}
         </Select>
