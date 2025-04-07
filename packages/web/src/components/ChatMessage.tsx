@@ -1,9 +1,12 @@
-import { Box, Paper, Typography, Avatar, Tooltip, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, Avatar, Tooltip, CircularProgress, IconButton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { formatTime } from '../utils';
 import { useChat } from '../contexts/ChatContext';
 import { Message } from '../contexts/ChatContext';
 import { TranslationService } from '../api';
+import { useState } from 'react';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 interface ChatMessageProps {
   message: Message;
@@ -30,6 +33,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const { currentLanguage } = useChat();
   const { content, username, createdAt, translations, language, id } = message;
+  const [showOriginal, setShowOriginal] = useState(false);
   
   // Generate avatar URL from username for consistency
   const avatarUrl = `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${username}`;
@@ -45,6 +49,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   // Format timestamp using the utility function
   const timestamp = new Date(createdAt);
   const formattedTime = formatTime(timestamp);
+
+  // Check if currently using default language (English)
+  const isDefaultLanguage = currentLanguage === 'en';
 
   return (
     <Box
@@ -86,23 +93,61 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               {hasTranslation ? translatedText : content}
             </Typography>
             
-            {/* Show original text if this is a translation */}
-            {hasTranslation && (
-              <Tooltip title="Original message" arrow>
-                <Typography 
-                  variant="caption" 
+            {/* Show original text toggle if this is a translation and not using default language */}
+            {hasTranslation && !isDefaultLanguage && (
+              <>
+                <Box 
                   sx={{ 
-                    display: 'block', 
-                    mt: 1, 
-                    pt: 1, 
-                    borderTop: '1px solid rgba(0,0,0,0.1)',
-                    fontStyle: 'italic',
-                    opacity: 0.7,
+                    display: 'flex', 
+                    alignItems: 'center',
+                    mt: 0.5,
+                    pt: 0.5,
                   }}
                 >
-                  {content}
-                </Typography>
-              </Tooltip>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      px: 1,
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      bgcolor: isCurrentUser ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
+                      '&:hover': {
+                        bgcolor: isCurrentUser ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.08)',
+                      },
+                    }}
+                    onClick={() => setShowOriginal(!showOriginal)}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: isCurrentUser ? 'inherit' : 'text.secondary',
+                      }}
+                    >
+                      {showOriginal ? 'Hide original' : 'Show original'}
+                      {showOriginal ? 
+                        <ExpandLessIcon fontSize="small" sx={{ ml: 0.5 }} /> : 
+                        <ExpandMoreIcon fontSize="small" sx={{ ml: 0.5 }} />
+                      }
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                {showOriginal && (
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      display: 'block', 
+                      mt: 0.5,
+                      opacity: 0.7,
+                    }}
+                  >
+                    {content}
+                  </Typography>
+                )}
+              </>
             )}
             
             {/* Show translation status indicator */}
