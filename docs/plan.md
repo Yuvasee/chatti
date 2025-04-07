@@ -67,14 +67,14 @@
 
 > **Important Note:** For all remaining API integration tasks, always use the shared DTOs from `@chatti/shared-types` package for consistent typing between frontend and backend. This includes response types (ApiResponseDto, LoginResponseDto, etc.), request types (LoginDto, etc.), and payload types (TokenPayloadDto, etc.).
 
-- [ ] Create Socket.IO client service for Chat Service
-  - [ ] Create ChatService in packages/web/src/api/ChatService.ts using socket.io-client
-  - [ ] Implement connection with JWT token authentication via AuthService
-  - [ ] Add reconnection logic with error handling
-  - [ ] Create chat room joining methods using formatted chat IDs
-  - [ ] Add message sending interface with typing indicators
-  - [ ] Implement event handlers for real-time message reception
-  - [ ] Use shared message and event DTOs from @chatti/shared-types
+- [X] Create Socket.IO client service for Chat Service
+  - [X] Create ChatService in packages/web/src/api/ChatService.ts using socket.io-client
+  - [X] Implement connection with JWT token authentication via AuthService
+  - [X] Add reconnection logic with error handling
+  - [X] Create chat room joining methods using formatted chat IDs
+  - [X] Add message sending interface with typing indicators
+  - [X] Implement event handlers for real-time message reception
+  - [X] Use shared message and event DTOs from @chatti/shared-types
 - [ ] Integrate translation functionality
   - [ ] Create TranslationService in packages/web/src/api/TranslationService.ts
   - [ ] Implement language change socket events

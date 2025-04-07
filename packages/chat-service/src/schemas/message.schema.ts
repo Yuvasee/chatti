@@ -17,6 +17,9 @@ export class Message {
   @Prop({ required: true })
   content!: string;
 
+  @Prop({ default: 'en' })
+  language!: string;
+
   @Prop({ type: Object, default: {} })
   translations!: Record<string, string>;
 }

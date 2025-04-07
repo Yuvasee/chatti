@@ -5,7 +5,6 @@ import {
   MessageDto,
   CreateChatDto,
   SocketResponseDto,
-  ErrorCode
 } from '@chatti/shared-types';
 import { TranslationCompleteEvent } from '../contexts/ChatContext';
 import { SOCKET_EVENTS } from '../constants/chat-events';
@@ -454,6 +453,18 @@ export class ChatService {
    */
   getCurrentChatId(): string | null {
     return this.chatId;
+  }
+
+  /**
+   * Emit an event to the socket server
+   */
+  emit(event: string, data: any): void {
+    if (this.socket && this.isConnected()) {
+      console.log(`ChatService: Emitting ${event}`, data);
+      this.socket.emit(event, data);
+    } else {
+      console.warn(`ChatService: Cannot emit ${event}, not connected`);
+    }
   }
 }
 

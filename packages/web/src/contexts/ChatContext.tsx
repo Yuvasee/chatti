@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { ChatService, AuthService } from '../api';
+import { ChatService, AuthService, TranslationService } from '../api';
 import { MessageResponseDto } from '@chatti/shared-types';
 import { SOCKET_EVENTS } from '../constants/chat-events';
 
@@ -32,6 +32,8 @@ interface ChatContextState {
   activeUsers: UserPresence[];
   isLoading: boolean;
   error: Error | null;
+  currentLanguage: string;
+  availableLanguages: {code: string, name: string}[];
   connectToChat: () => Promise<void>;
   disconnectFromChat: () => void;
   createChat: () => Promise<string>;
@@ -41,6 +43,7 @@ interface ChatContextState {
   startTyping: () => void;
   stopTyping: () => void;
   clearError: () => void;
+  setLanguagePreference: (language: string) => void;
 }
 
 // Default context state
@@ -51,6 +54,17 @@ const defaultState: ChatContextState = {
   activeUsers: [],
   isLoading: false,
   error: null,
+  currentLanguage: TranslationService.getLanguagePreference(),
+  availableLanguages: [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'ru', name: 'Russian' },
+  ],
   connectToChat: async () => {},
   disconnectFromChat: () => {},
   createChat: async () => '',
@@ -59,7 +73,8 @@ const defaultState: ChatContextState = {
   sendMessage: async () => {},
   startTyping: () => {},
   stopTyping: () => {},
-  clearError: () => {}
+  clearError: () => {},
+  setLanguagePreference: () => {}
 };
 
 // Create the context
@@ -81,7 +96,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [activeUsers, setActiveUsers] = useState<UserPresence[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-
+  const [currentLanguage, setCurrentLanguage] = useState(
+    TranslationService.getLanguagePreference()
+  );
+  const [availableLanguages] = useState(defaultState.availableLanguages);
+  
   useEffect(() => {
     console.log('messages', messages)
   }, [messages]);
@@ -131,6 +150,41 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       joinedChatRef.current = null;
     };
   }, []); // Empty dependency array to ensure it only runs once on mount
+
+  // Mark messages needing translation when loaded after a refresh
+  useEffect(() => {
+    // When messages are loaded after a refresh, mark messages that need translation
+    if (messages.length > 0) {
+      const currentUserId = AuthService.getUser()?.id;
+      messages.forEach(message => {
+        if (message.userId !== currentUserId && 
+            message.language !== currentLanguage && 
+            (!message.translations || !message.translations[currentLanguage])) {
+          console.log(`Marking message ${message.id} for translation to ${currentLanguage}`);
+          TranslationService.addPendingTranslation(message.id, currentLanguage);
+        }
+      });
+    }
+  }, [messages.length, currentLanguage]); // Run when messages array length or language changes
+
+  // Set the language preference
+  const setLanguagePreference = (language: string) => {
+    setCurrentLanguage(language);
+    TranslationService.setLanguagePreference(language);
+    
+    // Mark all messages as needing translation in the new language if they don't already have it
+    messages.forEach(message => {
+      // Don't mark messages from current user for translation
+      const currentUserId = AuthService.getUser()?.id;
+      if (message.userId !== currentUserId && message.language !== language) {
+        // Check if we already have this translation
+        if (!message.translations || !message.translations[language]) {
+          console.log(`Marking message ${message.id} for translation to ${language}`);
+          TranslationService.addPendingTranslation(message.id, language);
+        }
+      }
+    });
+  };
 
   // Connect to chat server
   const connectToChat = async () => {
@@ -183,6 +237,23 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           // The backend sorts by createdAt: -1 (newest first), but we want to display oldest first
           // The actual sorting will be handled in ChatPage component
           setMessages(response.recentMessages);
+          
+          // Import existing translations to our cache
+          response.recentMessages.forEach(message => {
+            if (message.translations) {
+              TranslationService.importTranslations({ [message.id]: message.translations });
+            }
+            
+            // Mark messages for translation if needed
+            const currentUserId = AuthService.getUser()?.id;
+            if (message.userId !== currentUserId && message.language !== currentLanguage) {
+              // Check if we already have this translation
+              if (!message.translations || !message.translations[currentLanguage]) {
+                console.log(`Marking message ${message.id} from chat history for translation to ${currentLanguage}`);
+                TranslationService.addPendingTranslation(message.id, currentLanguage);
+              }
+            }
+          });
         } else {
           setMessages([]);
         }
@@ -253,6 +324,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const handleMessageReceived = (message: Message) => {
+    // Mark message for translation if it's not from current user and in a different language
+    const currentUserId = AuthService.getUser()?.id;
+    if (message.userId !== currentUserId && message.language !== currentLanguage) {
+      console.log(`New message ${message.id} received, marking for translation to ${currentLanguage}`);
+      TranslationService.addPendingTranslation(message.id, currentLanguage);
+    }
+    
     // The backend already includes createdAt, so use it as is
     setMessages(prevMessages => [...prevMessages, message]);
   };
@@ -307,7 +385,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     );
   };
 
+  // Handle translation complete event
   const handleTranslationComplete = (translatedMessage: TranslationCompleteEvent) => {
+    // Cache the translation
+    TranslationService.cacheTranslation(
+      translatedMessage.messageId,
+      translatedMessage.language,
+      translatedMessage.translatedContent
+    );
+    
+    // Update the message in state
     setMessages(prevMessages => 
       prevMessages.map(msg => {
         if (msg.id === translatedMessage.messageId) {
@@ -361,6 +448,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     activeUsers,
     isLoading,
     error,
+    currentLanguage,
+    availableLanguages,
     connectToChat,
     disconnectFromChat,
     createChat,
@@ -369,7 +458,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     sendMessage,
     startTyping,
     stopTyping,
-    clearError
+    clearError,
+    setLanguagePreference
   };
 
   return (

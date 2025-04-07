@@ -1,21 +1,13 @@
-import { Box, Paper, Typography, Avatar, Tooltip } from '@mui/material';
+import { Box, Paper, Typography, Avatar, Tooltip, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { formatTime } from '../utils';
+import { useChat } from '../contexts/ChatContext';
+import { Message } from '../contexts/ChatContext';
+import { TranslationService } from '../api';
 
 interface ChatMessageProps {
-  content: string;
-  sender: {
-    id: string;
-    name: string;
-    avatar: string;
-  };
-  timestamp: Date;
+  message: Message;
   isCurrentUser: boolean;
-  translations?: {
-    language: string;
-    text: string;
-  }[];
-  selectedLanguage: string;
 }
 
 const MessagePaper = styled(Paper, {
@@ -33,17 +25,25 @@ const MessagePaper = styled(Paper, {
 }));
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
-  content,
-  sender,
-  timestamp,
+  message,
   isCurrentUser,
-  translations = [],
-  selectedLanguage,
 }) => {
+  const { currentLanguage } = useChat();
+  const { content, username, createdAt, translations, language, id } = message;
+  
+  // Generate avatar URL from username for consistency
+  const avatarUrl = `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${username}`;
+  
   // Get translation for selected language, if available
-  const translation = translations.find(t => t.language === selectedLanguage);
+  const translatedText = translations?.[currentLanguage];
+  const hasTranslation = !!translatedText;
+  
+  // Check if translation is needed or pending
+  const isTranslationNeeded = !isCurrentUser && currentLanguage !== language && !hasTranslation;
+  const isPendingTranslation = isTranslationNeeded && TranslationService.isPendingTranslation(id, currentLanguage);
   
   // Format timestamp using the utility function
+  const timestamp = new Date(createdAt);
   const formattedTime = formatTime(timestamp);
 
   return (
@@ -65,10 +65,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         }}
       >
         {!isCurrentUser && (
-          <Tooltip title={sender.name} arrow>
+          <Tooltip title={username} arrow>
             <Avatar 
-              src={sender.avatar} 
-              alt={sender.name} 
+              src={avatarUrl} 
+              alt={username} 
               sx={{ width: 36, height: 36 }}
             />
           </Tooltip>
@@ -77,16 +77,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
           {!isCurrentUser && (
             <Typography variant="caption" sx={{ ml: 1.5, display: 'block', mb: 0.5 }}>
-              {sender.name}
+              {username}
             </Typography>
           )}
           
           <MessagePaper isCurrentUser={isCurrentUser}>
             <Typography variant="body1">
-              {translation ? translation.text : content}
+              {hasTranslation ? translatedText : content}
             </Typography>
             
-            {translation && (
+            {/* Show original text if this is a translation */}
+            {hasTranslation && (
               <Tooltip title="Original message" arrow>
                 <Typography 
                   variant="caption" 
@@ -102,6 +103,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                   {content}
                 </Typography>
               </Tooltip>
+            )}
+            
+            {/* Show translation status indicator */}
+            {isPendingTranslation && (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mt: 1,
+                pt: 1,
+                borderTop: '1px solid rgba(0,0,0,0.1)',
+                opacity: 0.7 
+              }}>
+                <CircularProgress size={12} sx={{ mr: 1 }} />
+                <Typography variant="caption">
+                  Translating to {currentLanguage.toUpperCase()}...
+                </Typography>
+              </Box>
             )}
           </MessagePaper>
           

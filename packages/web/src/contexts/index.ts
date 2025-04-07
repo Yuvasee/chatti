@@ -1,2 +1,2 @@
-export { default as AuthContext, AuthProvider, useAuth } from './AuthContext';
-export { default as ChatContext, ChatProvider, useChat } from './ChatContext'; 
+export { AuthProvider, useAuth } from './AuthContext';
+export { ChatProvider, useChat } from './ChatContext'; 

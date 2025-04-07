@@ -5,10 +5,7 @@ import {
   Box, 
   IconButton, 
   Menu, 
-  MenuItem, 
-  Select, 
-  SelectChangeEvent, 
-  FormControl, 
+  MenuItem
 } from '@mui/material';
 import { useState } from 'react';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -16,18 +13,15 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
 import { copyLinkToClipboard, shareChat } from '../utils';
 import CopyNotification from './CopyNotification';
+import LanguageSelector from './LanguageSelector';
 
 interface ChatHeaderProps {
   chatId: string;
-  selectedLanguage: string;
-  onLanguageChange: (language: string) => void;
   isConnected?: boolean;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({ 
   chatId, 
-  selectedLanguage, 
-  onLanguageChange,
   isConnected = true
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -53,10 +47,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const handleShare = () => {
     shareChat(chatId);
     handleMenuClose();
-  };
-
-  const handleLanguageChange = (event: SelectChangeEvent) => {
-    onLanguageChange(event.target.value);
   };
 
   const handleCloseNotification = () => {
@@ -99,30 +89,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </Typography>
         </Box>
         
-        <FormControl variant="outlined" size="small" sx={{ 
-          minWidth: 120, 
-          backgroundColor: 'rgba(255,255,255,0.15)',
-          borderRadius: 1,
-          mr: 1,
-          '& .MuiOutlinedInput-notchedOutline': {
-            border: 'none'
-          }
-        }}>
-          <Select
-            value={selectedLanguage}
-            onChange={handleLanguageChange}
-            displayEmpty
-            inputProps={{ 'aria-label': 'Language' }}
-          >
-            <MenuItem value="en">English</MenuItem>
-            <MenuItem value="es">Español</MenuItem>
-            <MenuItem value="fr">Français</MenuItem>
-            <MenuItem value="de">Deutsch</MenuItem>
-            <MenuItem value="ja">日本語</MenuItem>
-            <MenuItem value="zh">中文</MenuItem>
-            <MenuItem value="ru">Русский</MenuItem>
-          </Select>
-        </FormControl>
+        <LanguageSelector variant="simple" />
         
         <IconButton
           aria-label="more"

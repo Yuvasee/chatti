@@ -6,7 +6,6 @@ import {
   OnGatewayDisconnect,
   ConnectedSocket,
   MessageBody,
-  WsResponse,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
@@ -16,8 +15,7 @@ import {
   MessageDto, 
   AppLogger, 
   ErrorCode, 
-  AppError, 
-  
+  AppError,   
   getErrorMessage, 
   NotFoundError,
   SOCKET_EVENTS
@@ -317,26 +315,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new AppError('User is not a member of this chat', ErrorCode.NOT_CHAT_MEMBER);
       }
 
-      // Broadcast message to all clients in the room immediately
-      const messageData = {
-        id: Date.now().toString(), // Temporary ID until saved
-        chatId,
-        userId,
-        username,
-        content,
-        translations: {},
-        createdAt: new Date(),
-      };
-
-      this.server.to(chatId).emit(SOCKET_EVENTS.MESSAGE_RECEIVED, messageData);
-
-      // Asynchronously save message to database
+      // Asynchronously save message to database first to get the real ID
       const savedMessage = await this.messageService.saveMessage({
         chatId,
         userId,
         username,
         content,
       });
+
+      // Get the MongoDB generated ID and convert to string
+      const messageId = (savedMessage as any)._id.toString();
+
+      // Broadcast message to all clients in the room with proper ID mapping
+      const messageData = {
+        id: messageId, // Use the real MongoDB ID
+        chatId,
+        userId,
+        username,
+        content,
+        language: language || 'en',
+        translations: {},
+        createdAt: new Date(),
+      };
+
+      this.server.to(chatId).emit(SOCKET_EVENTS.MESSAGE_RECEIVED, messageData);
 
       // Queue translation jobs for all users in the chat with different languages
       const connectedSockets = await this.server.in(chatId).fetchSockets();
@@ -352,10 +354,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Add translation jobs to the queue
       for (const targetLanguage of uniqueLanguages) {
         await this.translationProducer.addTranslationJob({
-          messageId: (savedMessage as any)._id,
+          messageId: messageId, // Use string ID
           chatId,
           content,
-          sourceLanguage: language,
+          sourceLanguage: language || 'en',
           targetLanguage,
         });
       }
@@ -364,7 +366,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       const successResponse = {
         success: true, 
-        data: { messageId: (savedMessage as any)._id }
+        data: { messageId: messageId } // Return string ID
       };
       
       // Send acknowledgment of success
@@ -532,13 +534,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       this.logger.log(`Notifying chat ${chatId} about translation for message ${messageId} to ${language}`);
       
-      this.server.to(chatId).emit('messageTranslated', {
-        messageId,
+      // Ensure messageId is a string
+      const idToSend = messageId;
+      
+      this.server.to(chatId).emit(SOCKET_EVENTS.TRANSLATION_COMPLETE, {
+        messageId: idToSend,
         language,
         translatedContent,
       });
       
-      this.logger.debug(`Translation notification sent for message ${messageId}`);
+      this.logger.debug(`Translation notification sent for message ${idToSend}`);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(`Error in notifyTranslation: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
@@ -566,6 +571,100 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // ... existing implementation ...
     } catch (error) {
       // ... existing error handling ...
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.LANGUAGE_CHANGE)
+  async handleLanguageChange(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { language: string },
+    ack: AckCallback
+  ) {
+    try {
+      const { language } = payload;
+      const { userId, username, chatId } = client.data;
+      
+      if (!chatId) {
+        this.logger.warn(`User ${username || userId} attempted to change language but is not in a chat room`);
+        
+        const errorResponse = {
+          success: false,
+          message: 'Not in a chat room',
+          code: ErrorCode.NOT_CHAT_MEMBER
+        };
+        
+        // Send acknowledgment with error
+        if (ack) {
+          ack(errorResponse);
+        }
+        
+        return errorResponse;
+      }
+      
+      this.logger.log(`User ${username || userId} changing language to ${language}`);
+      
+      // Store user's language preference in socket data
+      client.data.language = language;
+      
+      // Get recent messages from this chat
+      const recentMessages = await this.messageService.getRecentMessages(chatId, 20);
+      
+      // Queue translation jobs for messages that aren't from this user and don't have a translation in the requested language
+      for (const message of recentMessages) {
+        if (message.userId !== userId) {
+          const messageId = message.id; // Now we can directly access id property
+          const sourceLanguage = message.language;
+          
+          // Check if we already have this translation
+          if (!message.translations || !message.translations[language]) {
+            this.logger.debug(`Queueing translation for message ${messageId} from ${sourceLanguage} to ${language}`);
+            
+            // Add translation job to the queue
+            await this.translationProducer.addTranslationJob({
+              messageId,
+              chatId,
+              content: message.content,
+              sourceLanguage,
+              targetLanguage: language,
+            });
+          }
+        }
+      }
+      
+      const successResponse = {
+        success: true,
+        data: { language }
+      };
+      
+      // Send acknowledgment of success
+      if (ack) {
+        ack(successResponse);
+      }
+      
+      // Return success response for WebSocket subscribers
+      return successResponse;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(`Error in handleLanguageChange: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      
+      const errorResponse = {
+        success: false,
+        message: 'Failed to change language: ' + errorMessage,
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR
+      };
+      
+      client.emit(SOCKET_EVENTS.ERROR, { 
+        message: 'Failed to change language', 
+        code: error instanceof AppError ? error.code : ErrorCode.INTERNAL_SERVER_ERROR 
+      });
+      
+      // Send acknowledgment with error
+      if (ack) {
+        ack(errorResponse);
+      }
+      
+      // Return error response for WebSocket subscribers
+      return errorResponse;
     }
   }
 }

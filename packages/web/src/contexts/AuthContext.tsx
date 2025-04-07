@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { AuthService } from '../api';
+import { AuthService, TranslationService } from '../api';
 
 interface User {
   id: string;
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (userData) {
             setUser({
               ...userData,
-              language: 'en', // Default language
+              language: TranslationService.getLanguagePreference(), // Use saved language preference
             });
           }
         }
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: result.id,
         name: result.name,
         avatar: result.avatar,
-        language: 'en', // Default language
+        language: TranslationService.getLanguagePreference(), // Use saved language preference
       });
     } catch (error) {
       console.error('Login failed:', error);
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const setUserLanguage = (language: string): void => {
     if (user) {
       setUser({ ...user, language });
-      // Note: We're not persisting language to backend in this version
+      TranslationService.setLanguagePreference(language); // Persist language preference
     }
   };
 

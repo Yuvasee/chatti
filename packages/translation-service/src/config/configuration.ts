@@ -17,4 +17,7 @@ export default () => ({
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
   },
+  chatService: {
+    url: process.env.CHAT_SERVICE_URL || 'http://chat-service:4001',
+  },
 }); 

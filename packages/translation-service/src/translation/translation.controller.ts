@@ -1,18 +1,15 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { TranslationService } from './translation.service';
 import { QueueService } from '../queue/queue.service';
 import { 
-  TranslationRequestDto, 
-  TranslationResponseDto,
   AppLogger,
   ErrorCode,
   AppError,
-  
   getErrorMessage,
   ApiResponseDto,
   ApiErrorResponseDto
 } from '@chatti/shared-types';
-import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Translation')
 @Controller('translation')
@@ -22,44 +19,6 @@ export class TranslationController {
     private readonly queueService: QueueService,
     private readonly logger: AppLogger
   ) {}
-
-  @Post('queue')
-  @ApiOperation({ summary: 'Queue a new translation job' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Translation job queued successfully',
-    type: () => ApiResponseDto<{ success: boolean }>
-  })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid translation data', 
-    type: ApiErrorResponseDto
-  })
-  @ApiResponse({ 
-    status: 500, 
-    description: 'Server error',
-    type: ApiErrorResponseDto
-  })
-  async queueTranslation(@Body() job: TranslationRequestDto): Promise<ApiResponseDto<{ success: boolean }>> {
-    try {
-      this.logger.log(`Received request to queue translation for message: ${job.messageId}`);
-      
-      await this.queueService.addTranslationJob(job);
-      
-      this.logger.log(`Successfully queued translation for message: ${job.messageId}`);
-      return new ApiResponseDto<{ success: boolean }>({ success: true }, 'Translation job queued successfully');
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      this.logger.error(
-        `Failed to queue translation job: ${errorMessage}`,
-        error instanceof Error ? error.stack : undefined
-      );
-      
-      throw error instanceof AppError 
-        ? error 
-        : new AppError(`Failed to queue translation: ${errorMessage}`, ErrorCode.TRANSLATION_ERROR);
-    }
-  }
 
   @Get('queue/status')
   @ApiOperation({ summary: 'Get translation queue status' })

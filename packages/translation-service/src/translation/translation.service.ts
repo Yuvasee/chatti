@@ -6,18 +6,20 @@ import { Translation, TranslationDocument } from '../schemas/translation.schema'
 import { QueueService } from '../queue/queue.service';
 import { 
   TranslationRequestDto, 
-  TranslationResponseDto,
   AppLogger,
   ErrorCode,
   AppError,
-  
+  API_ENDPOINTS,
+  TranslationNotificationDto,
   getErrorMessage 
 } from '@chatti/shared-types';
 import OpenAI from 'openai';
+import axios from 'axios';
 
 @Injectable()
 export class TranslationService {
   private openai: OpenAI;
+  private chatServiceUrl: string;
 
   constructor(
     private configService: ConfigService,
@@ -37,41 +39,10 @@ export class TranslationService {
     this.openai = new OpenAI({
       apiKey,
     });
-  }
-
-  /**
-   * Queue a message for translation
-   */
-  async queueTranslation(
-    messageId: string,
-    text: string,
-    sourceLanguage: string,
-    targetLanguage: string,
-  ): Promise<void> {
-    try {
-      this.logger.log(`Queueing translation for message ${messageId} from ${sourceLanguage} to ${targetLanguage}`);
-      
-      const translationJob: TranslationRequestDto = {
-        messageId,
-        originalText: text,
-        sourceLanguage,
-        targetLanguage,
-      };
-      
-      await this.queueService.addTranslationJob(translationJob);
-
-      this.logger.log(`Translation successfully queued for message ${messageId} to ${targetLanguage}`);
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      this.logger.error(
-        `Error queueing translation for message ${messageId}: ${errorMessage}`, 
-        error instanceof Error ? error.stack : undefined
-      );
-      throw new AppError(
-        `Failed to queue translation: ${errorMessage}`,
-        ErrorCode.TRANSLATION_ERROR
-      );
-    }
+    
+    // Get chat service URL from config
+    this.chatServiceUrl = this.configService.get<string>('chatService.url') || 'http://localhost:4001';
+    this.logger.log(`Chat service URL configured as: ${this.chatServiceUrl}`);
   }
 
   /**
@@ -132,7 +103,7 @@ export class TranslationService {
    */
   async processTranslation(job: TranslationRequestDto): Promise<void> {
     try {
-      const { messageId, originalText, sourceLanguage, targetLanguage } = job;
+      const { messageId, originalText, sourceLanguage, targetLanguage, chatId } = job;
       this.logger.log(`Processing translation for message ${messageId} from ${sourceLanguage} to ${targetLanguage}`);
       
       // Skip translation if languages are the same
@@ -147,6 +118,15 @@ export class TranslationService {
         });
         await newTranslation.save();
         this.logger.log(`Stored original text as translation for message ${messageId}`);
+        
+        // Notify if we have a chatId
+        if (chatId) {
+          // Notify about the translation even though it's just a copy
+          await this.notifyTranslationComplete(messageId, chatId, targetLanguage, originalText);
+        } else {
+          this.logger.warn(`No chatId found in job data for message ${messageId}`);
+        }
+        
         return;
       }
 
@@ -159,6 +139,15 @@ export class TranslationService {
       // If translation already exists, skip
       if (existingTranslation) {
         this.logger.log(`Translation already exists for messageId: ${messageId} to ${targetLanguage}`);
+        
+        // Notify if we have a chatId
+        if (chatId) {
+          // Notify about the existing translation
+          await this.notifyTranslationComplete(messageId, chatId, targetLanguage, existingTranslation.translatedText);
+        } else {
+          this.logger.warn(`No chatId found in job data for message ${messageId}`);
+        }
+        
         return;
       }
 
@@ -187,6 +176,14 @@ export class TranslationService {
       this.logger.log(
         `Successfully translated message ${messageId} from ${sourceLanguage} to ${targetLanguage}`
       );
+      
+      // Notify if we have a chatId
+      if (chatId) {
+        // Notify the chat service about the completed translation
+        await this.notifyTranslationComplete(messageId, chatId, targetLanguage, translatedText);
+      } else {
+        this.logger.warn(`No chatId found in job data for message ${messageId}`);
+      }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(
@@ -203,6 +200,42 @@ export class TranslationService {
       }
       
       throw error;
+    }
+  }
+
+  /**
+   * Notify the chat service about a completed translation
+   */
+  private async notifyTranslationComplete(
+    messageId: string,
+    chatId: string,
+    language: string,
+    translatedContent: string
+  ): Promise<void> {
+    try {
+      this.logger.log(`Notifying chat service about completed translation for message ${messageId} to ${language}`);
+      
+      const notificationEndpoint = `${this.chatServiceUrl}${API_ENDPOINTS.CHAT.TRANSLATIONS_NOTIFY}`;
+      
+      const notification: TranslationNotificationDto = {
+        messageId,
+        chatId,
+        language,
+        translatedContent
+      };
+      
+      // Send notification to chat service
+      await axios.post(notificationEndpoint, notification);
+      
+      this.logger.log(`Successfully notified chat service about translation for message ${messageId}`);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(
+        `Failed to notify chat service about translation for message ${messageId}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined
+      );
+      // Don't throw an error here to avoid failing the whole job
+      // Just log the error and continue
     }
   }
 

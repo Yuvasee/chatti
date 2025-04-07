@@ -11,7 +11,8 @@ import {
   getErrorMessage,
   MessageDto,
   PaginatedResponseDto,
-  PaginationMetaDto
+  PaginationMetaDto,
+  MessageResponseDto
 } from '@chatti/shared-types';
 
 @Injectable()
@@ -30,6 +31,7 @@ export class MessageService {
       
       const newMessage = new this.messageModel({
         ...messageData,
+        language: messageData.language || 'en', // Default to English if not provided
         translations: {},
       });
 
@@ -53,14 +55,31 @@ export class MessageService {
   /**
    * Retrieve recent messages for a chat
    */
-  async getRecentMessages(chatId: string, limit = 50): Promise<Message[]> {
+  async getRecentMessages(chatId: string, limit = 50): Promise<MessageResponseDto[]> {
     try {
       this.logger.log(`Retrieving recent messages for chat ${chatId} (limit: ${limit})`);
       
-      const messages = await this.messageModel.find({ chatId }).sort({ createdAt: -1 }).limit(limit).exec();
+      const messages = await this.messageModel.find({ chatId }).sort({ createdAt: -1 }).limit(limit).lean().exec();
       
-      this.logger.debug(`Retrieved ${messages.length} messages for chat ${chatId}`);
-      return messages;
+      // Map MongoDB _id to id for frontend compatibility
+      const mappedMessages: MessageResponseDto[] = messages.map(message => {
+        // Use type assertion to work with the Mongoose document
+        const messageDoc = message as any;
+        
+        return {
+          id: messageDoc._id.toString(), // Convert MongoDB ObjectId to string
+          chatId: messageDoc.chatId,
+          userId: messageDoc.userId,
+          username: messageDoc.username,
+          content: messageDoc.content,
+          translations: messageDoc.translations || {},
+          createdAt: messageDoc.createdAt,
+          language: messageDoc.language || 'en' // Default to English if not specified
+        };
+      });
+      
+      this.logger.debug(`Retrieved ${mappedMessages.length} messages for chat ${chatId}`);
+      return mappedMessages;
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(`Error in getRecentMessages: ${errorMessage}`, error instanceof Error ? error.stack : undefined);

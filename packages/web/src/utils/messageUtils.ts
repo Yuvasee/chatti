@@ -11,6 +11,7 @@ export interface FormattedMessage {
   };
   timestamp: Date; // Keep timestamp for UI display but derive from createdAt
   translations: Array<{ language: string; text: string }>;
+  originalLanguage?: string; // The original language of the message
 }
 
 /**
@@ -33,6 +34,7 @@ export const formatMessage = (msg: Message): FormattedMessage => ({
       language, 
       text 
     })) : [],
+  originalLanguage: msg.language, // Include the original language
 });
 
 /**

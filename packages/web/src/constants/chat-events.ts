@@ -24,6 +24,7 @@ export const SOCKET_EVENTS = {
   
   // Translation events
   TRANSLATION_COMPLETE: 'translation_complete',
+  LANGUAGE_CHANGE: 'language_change',
   
   // Error events
   ERROR: 'error'

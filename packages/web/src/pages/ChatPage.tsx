@@ -5,6 +5,7 @@ import ChatHeader from '../components/ChatHeader';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
 import { useAuth, useChat } from '../contexts';
+import { Message } from '../contexts/ChatContext';
 import { createTypingHandler, formatMessage } from '../utils';
 
 const ChatPage: React.FC = () => {
@@ -85,10 +86,6 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleLanguageChange = (newLanguage: string) => {
-    setUserLanguage(newLanguage);
-  };
-
   const handleCloseError = () => {
     setShowError(false);
     clearError();
@@ -112,8 +109,6 @@ const ChatPage: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <ChatHeader 
         chatId={chatId}
-        selectedLanguage={user.language}
-        onLanguageChange={handleLanguageChange}
       />
       
       <Box sx={{ 
@@ -155,17 +150,30 @@ const ChatPage: React.FC = () => {
           </Box>
         ) : (
           <Box sx={{ flexGrow: 1 }}>
-            {formattedMessages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                content={message.content}
-                sender={message.sender}
-                timestamp={message.timestamp}
-                isCurrentUser={message.sender.id === user.id}
-                translations={message.translations}
-                selectedLanguage={user.language}
-              />
-            ))}
+            {formattedMessages.map((formattedMsg) => {
+              // Convert formatted message back to a Message object structure
+              const messageObj: Message = {
+                id: formattedMsg.id,
+                content: formattedMsg.content,
+                userId: formattedMsg.sender.id,
+                username: formattedMsg.sender.name,
+                chatId: chatId,
+                createdAt: formattedMsg.timestamp,
+                language: formattedMsg.originalLanguage || user.language, // Use original language if available
+                translations: formattedMsg.translations.reduce((acc, t) => {
+                  acc[t.language] = t.text;
+                  return acc;
+                }, {} as Record<string, string>)
+              };
+              
+              return (
+                <ChatMessage
+                  key={formattedMsg.id}
+                  message={messageObj}
+                  isCurrentUser={formattedMsg.sender.id === user.id}
+                />
+              );
+            })}
             <div ref={messagesEndRef} />
           </Box>
         )}

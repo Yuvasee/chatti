@@ -12,6 +12,11 @@ import {
   getErrorMessage
 } from '@chatti/shared-types';
 
+/**
+ * BullMQ processor for translation jobs
+ * Consumes jobs from the translation queue and processes them
+ * Expects jobs in the TranslationRequestDto format
+ */
 @Processor(QueueNames.TRANSLATION)
 export class TranslationProcessor {
   constructor(
@@ -20,12 +25,16 @@ export class TranslationProcessor {
     private readonly logger: AppLogger
   ) {}
 
+  /**
+   * Process translation jobs from the queue
+   */
   @Process(ProcessorNames.TRANSLATE)
   async processTranslation(job: Job<TranslationRequestDto>) {
     try {
       const { messageId, targetLanguage, sourceLanguage } = job.data;
       this.logger.log(`Processing translation job ${job.id} for messageId: ${messageId} from ${sourceLanguage} to ${targetLanguage}`);
 
+      // Process the translation job
       await this.translationService.processTranslation(job.data);
 
       this.logger.log(
