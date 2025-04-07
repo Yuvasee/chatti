@@ -205,11 +205,10 @@ export class ChatService {
         return;
       }
       
-      const createChatDto: CreateChatDto = {
-        userId: user.id
-      };
+      // Empty payload - user data is extracted from JWT on server side
+      const createChatDto: CreateChatDto = {};
       
-      console.log('ChatService: Emitting create_chat event with payload:', createChatDto);
+      console.log('ChatService: Emitting create_chat event');
       
       this.socket.emit(
         SOCKET_EVENTS.CREATE_CHAT, 
@@ -255,10 +254,9 @@ export class ChatService {
         return;
       }
       
+      // Only chatId is needed - user data is extracted from JWT on server side
       const joinChatDto: JoinChatDto = {
-        chatId,
-        userId: user.id,
-        username: user.name
+        chatId
       };
 
       this.socket.emit(

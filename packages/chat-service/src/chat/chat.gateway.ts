@@ -6,6 +6,7 @@ import {
   OnGatewayDisconnect,
   ConnectedSocket,
   MessageBody,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
@@ -18,13 +19,18 @@ import {
   AppError,   
   getErrorMessage, 
   NotFoundError,
-  SOCKET_EVENTS
+  SOCKET_EVENTS,
+  AuthenticationError
 } from '@chatti/shared-types';
 import { TranslationProducerService } from '../queue/translation-producer.service';
+import { UseGuards } from '@nestjs/common';
+import { WsJwtGuard } from '../auth/ws-jwt.guard';
+import { JwtService } from '../auth/jwt.service';
 
 // Type for Socket.IO acknowledgment callback
 type AckCallback = (response: { success: boolean; message?: string; data?: any }) => void;
 
+@UseGuards(WsJwtGuard)
 @WebSocketGateway({
   cors: {
     origin: '*', // In production, this should be restricted
@@ -39,14 +45,49 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private messageService: MessageService,
     private translationProducer: TranslationProducerService,
     private readonly logger: AppLogger,
+    private readonly jwtService: JwtService
   ) {}
 
   async handleConnection(client: Socket) {
     try {
-      this.logger.log(`Client connected: ${client.id}`);
+      this.logger.log(`Client connecting: ${client.id}`);
+      
+      // Extract and verify token
+      const token = client.handshake.auth?.token;
+      if (!token) {
+        this.logger.warn(`No auth token provided by client ${client.id}`);
+        client.emit('error', { 
+          message: 'Authentication required', 
+          code: ErrorCode.UNAUTHORIZED 
+        });
+        client.disconnect(true);
+        return;
+      }
+      
+      try {
+        // Verify the token and extract user data
+        const payload = this.jwtService.verifyToken(token);
+        
+        // Store user information in the socket data
+        client.data.userId = payload.userId;
+        client.data.username = payload.username;
+        
+        this.logger.log(`Client ${client.id} authenticated as ${payload.username} (${payload.userId})`);
+      } catch (error) {
+        this.logger.warn(`Invalid auth token from client ${client.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        client.emit('error', { 
+          message: 'Authentication failed', 
+          code: error instanceof AuthenticationError ? error.code : ErrorCode.UNAUTHORIZED
+        });
+        client.disconnect(true);
+        return;
+      }
+      
+      this.logger.log(`Client connected and authenticated: ${client.id}`);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(`Error in handleConnection: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      client.disconnect(true);
     }
   }
 
@@ -62,12 +103,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('create_chat')
   async handleCreateChat(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { userId: string },
     ack: AckCallback
   ) {
     try {
-      const { userId } = payload;
-      this.logger.log(`User ${userId} attempting to create a new chat`);
+      // Use authenticated user data from socket connection
+      const userId = client.data.userId;
+      const username = client.data.username;
+      
+      if (!userId || !username) {
+        this.logger.warn(`Unauthenticated user attempting to create chat`);
+        const errorResponse = {
+          success: false,
+          message: 'Authentication required',
+          code: ErrorCode.UNAUTHORIZED
+        };
+        
+        client.emit(SOCKET_EVENTS.ERROR, { 
+          message: 'Authentication required', 
+          code: ErrorCode.UNAUTHORIZED 
+        });
+        
+        if (ack) {
+          ack(errorResponse);
+        }
+        
+        return errorResponse;
+      }
+      
+      this.logger.log(`User ${username} (${userId}) attempting to create a new chat`);
       
       // Create a new chat
       const chat = await this.chatService.createChat(userId);
@@ -119,15 +182,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ack: AckCallback
   ) {
     try {
-      const { chatId, userId, username } = payload;
+      const { chatId } = payload;
+      
+      // Use authenticated user data from socket connection
+      const userId = client.data.userId;
+      const username = client.data.username;
+      
+      if (!userId || !username) {
+        this.logger.warn(`Unauthenticated user attempting to join chat ${chatId}`);
+        const errorResponse = {
+          success: false,
+          message: 'Authentication required',
+          code: ErrorCode.UNAUTHORIZED
+        };
+        
+        client.emit(SOCKET_EVENTS.ERROR, { 
+          message: 'Authentication required', 
+          code: ErrorCode.UNAUTHORIZED 
+        });
+        
+        if (ack) {
+          ack(errorResponse);
+        }
+        
+        return errorResponse;
+      }
+      
       this.logger.log(`User ${username} (${userId}) attempting to join chat ${chatId}`);
 
       // Join the Socket.IO room
       client.join(chatId);
 
-      // Store user data in socket
-      client.data.userId = userId;
-      client.data.username = username;
+      // Store chat data in socket
       client.data.chatId = chatId;
       client.data.language = 'en'; // Default language
 

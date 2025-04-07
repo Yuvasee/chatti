@@ -17,4 +17,7 @@ export default () => ({
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
   },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'change_me_in_production',
+  },
 }); 

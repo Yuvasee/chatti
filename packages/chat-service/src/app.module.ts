@@ -5,6 +5,7 @@ import { ChatModule } from './chat/chat.module';
 import { QueueModule } from './queue/queue.module';
 import { ConfigModule } from '@nestjs/config';
 import { LoggingModule, RequestLoggerMiddleware } from '@chatti/shared-types';
+import { AuthModule } from './auth/auth.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -18,7 +19,8 @@ import configuration from './config/configuration';
     }),
     DatabaseModule, 
     ChatModule, 
-    QueueModule
+    QueueModule,
+    AuthModule
   ],
   controllers: [AppController],
 })
